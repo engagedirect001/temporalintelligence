@@ -261,7 +261,7 @@ All experiments were orchestrated using \textbf{OpenClaw}\footnote{\url{https://
 
 \textbf{Memory and Context Control.} OpenClaw's workspace-based memory system (\texttt{MEMORY.md} and structured memory files) was used to implement the TEMPORAL condition's accumulated context. For the SUMMARY condition, pattern distillations were stored as compressed memory files. The STATELESS condition used fresh sessions with no prior context, enforced by OpenClaw's session isolation.
 
-\textbf{Reproducibility.} All experimental configurations, prompts, and raw API responses were logged by OpenClaw and are available in the supplementary materials. The experimental pipeline can be reproduced by running the provided OpenClaw agent configurations on any compatible infrastructure.
+\textbf{Reproducibility.} All experimental configurations, prompts, and raw API responses were logged by OpenClaw and are available in the supplementary materials and the public repository \citep{karasi2026repo}. The repository contains all 28 task definitions (buggy code and test suites), experiment runner scripts for all three models, raw result JSON files, and the accumulated pattern context used in the SUMMARY condition. The experimental pipeline can be reproduced by running the provided scripts with appropriate API keys.
 
 The experiments were conducted on a Hostinger KVM 2 VPS (Linux) running OpenClaw v1.x with Node.js v22. Total API usage across all conditions was approximately 2.5 million tokens.
 
@@ -577,6 +577,11 @@ Finn, C., Abbeel, P., and Levine, S. (2017).
 \newblock Model-agnostic meta-learning for fast adaptation of deep networks.
 \newblock In \emph{ICML}.
 
+\bibitem[Karasi, 2026]{karasi2026repo}
+Karasi, A. (2026).
+\newblock Temporal Intelligence: Experiment code, task definitions, and reproducible results.
+\newblock \url{https://github.com/engagedirect001/temporalintelligence}.
+
 \bibitem[Brown et al., 2020]{brown2020language}
 Brown, T.~B., et al. (2020).
 \newblock Language models are few-shot learners.
@@ -628,7 +633,7 @@ Thrun, S. and Pratt, L. (1998).
 
 \section{Experimental Protocol Details}
 
-Full experimental protocol, task specifications, and raw data are available in the supplementary materials.
+Full experimental protocol, task specifications, and raw data are available in the supplementary materials and the public repository: \url{https://github.com/engagedirect001/temporalintelligence}.
 
 \section{Statistical Analysis Code}
 
