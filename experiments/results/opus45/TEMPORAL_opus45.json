@@ -1,0 +1,42 @@
+{
+  "summary": {
+    "condition": "TEMPORAL",
+    "model": "opus-4.5",
+    "total_tasks": 28,
+    "passed": 27,
+    "failed": 1,
+    "success_rate": 0.964,
+    "patterns_accumulated": 28,
+    "acceleration_events": 7
+  },
+  "results": [
+    {"task_id": "task_01", "passed": true, "tests_passed": 9, "tests_total": 9},
+    {"task_id": "task_02", "passed": true, "tests_passed": 6, "tests_total": 6},
+    {"task_id": "task_03", "passed": true, "tests_passed": 8, "tests_total": 8},
+    {"task_id": "task_04", "passed": true, "tests_passed": 7, "tests_total": 7},
+    {"task_id": "task_05", "passed": true, "tests_passed": 7, "tests_total": 7},
+    {"task_id": "task_06", "passed": true, "tests_passed": 8, "tests_total": 8},
+    {"task_id": "task_07", "passed": true, "tests_passed": 7, "tests_total": 7},
+    {"task_id": "task_08", "passed": true, "tests_passed": 9, "tests_total": 9},
+    {"task_id": "task_09", "passed": true, "tests_passed": 6, "tests_total": 6},
+    {"task_id": "task_10", "passed": true, "tests_passed": 9, "tests_total": 9},
+    {"task_id": "task_11", "passed": true, "tests_passed": 7, "tests_total": 7},
+    {"task_id": "task_12", "passed": true, "tests_passed": 8, "tests_total": 8},
+    {"task_id": "task_13", "passed": true, "tests_passed": 9, "tests_total": 9},
+    {"task_id": "task_14", "passed": true, "tests_passed": 7, "tests_total": 7},
+    {"task_id": "task_15", "passed": true, "tests_passed": 8, "tests_total": 8},
+    {"task_id": "task_16", "passed": true, "tests_passed": 6, "tests_total": 6},
+    {"task_id": "task_17", "passed": true, "tests_passed": 7, "tests_total": 7},
+    {"task_id": "task_18", "passed": true, "tests_passed": 10, "tests_total": 10},
+    {"task_id": "task_19", "passed": true, "tests_passed": 9, "tests_total": 9},
+    {"task_id": "task_20", "passed": false, "tests_passed": 10, "tests_total": 11},
+    {"task_id": "task_21", "passed": true, "tests_passed": 9, "tests_total": 9},
+    {"task_id": "task_22", "passed": true, "tests_passed": 8, "tests_total": 8},
+    {"task_id": "task_23", "passed": true, "tests_passed": 9, "tests_total": 9},
+    {"task_id": "task_24", "passed": true, "tests_passed": 8, "tests_total": 8},
+    {"task_id": "task_25", "passed": true, "tests_passed": 8, "tests_total": 8},
+    {"task_id": "task_26", "passed": true, "tests_passed": 9, "tests_total": 9},
+    {"task_id": "task_27", "passed": true, "tests_passed": 8, "tests_total": 8},
+    {"task_id": "task_28", "passed": true, "tests_passed": 9, "tests_total": 9}
+  ]
+}

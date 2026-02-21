@@ -1,0 +1,355 @@
+{
+  "summary": {
+    "run_id": "STATELESS_opus45api_20260128_205746",
+    "condition": "STATELESS",
+    "model": "claude-opus-4-5-20251101",
+    "total_tasks": 28,
+    "passed": 24,
+    "failed": 4,
+    "success_rate": 0.8571,
+    "avg_time_ms": 9674,
+    "total_time_ms": 270883,
+    "by_category": {
+      "data_structure_algorithm": {
+        "passed": 7,
+        "total": 9,
+        "avg_time_ms": 8607
+      },
+      "concurrency": {
+        "passed": 12,
+        "total": 13,
+        "avg_time_ms": 10744
+      },
+      "system_design": {
+        "passed": 1,
+        "total": 1,
+        "avg_time_ms": 6188
+      },
+      "math_numerical": {
+        "passed": 2,
+        "total": 3,
+        "avg_time_ms": 7372
+      },
+      "general": {
+        "passed": 1,
+        "total": 1,
+        "avg_time_ms": 12632
+      },
+      "state_machine": {
+        "passed": 1,
+        "total": 1,
+        "avg_time_ms": 12817
+      }
+    }
+  },
+  "results": [
+    {
+      "task_id": "task_01",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "data_structure_algorithm",
+      "passed": true,
+      "tests_passed": 9,
+      "tests_total": 9,
+      "elapsed_ms": 4628,
+      "timestamp": "2026-01-28T20:57:51.678869"
+    },
+    {
+      "task_id": "task_02",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 6,
+      "tests_total": 6,
+      "elapsed_ms": 9545,
+      "timestamp": "2026-01-28T20:58:02.372817"
+    },
+    {
+      "task_id": "task_03",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "data_structure_algorithm",
+      "passed": true,
+      "tests_passed": 8,
+      "tests_total": 8,
+      "elapsed_ms": 7559,
+      "timestamp": "2026-01-28T20:58:10.245717"
+    },
+    {
+      "task_id": "task_04",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 7,
+      "tests_total": 7,
+      "elapsed_ms": 8815,
+      "timestamp": "2026-01-28T20:58:19.407810"
+    },
+    {
+      "task_id": "task_05",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "system_design",
+      "passed": true,
+      "tests_passed": 7,
+      "tests_total": 7,
+      "elapsed_ms": 6188,
+      "timestamp": "2026-01-28T20:58:25.875488"
+    },
+    {
+      "task_id": "task_06",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "math_numerical",
+      "passed": true,
+      "tests_passed": 8,
+      "tests_total": 8,
+      "elapsed_ms": 6744,
+      "timestamp": "2026-01-28T20:58:32.875849"
+    },
+    {
+      "task_id": "task_07",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 7,
+      "tests_total": 7,
+      "elapsed_ms": 7422,
+      "timestamp": "2026-01-28T20:58:40.538219"
+    },
+    {
+      "task_id": "task_08",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "data_structure_algorithm",
+      "passed": false,
+      "tests_passed": 1,
+      "tests_total": 2,
+      "elapsed_ms": 5128,
+      "timestamp": "2026-01-28T20:58:45.939050"
+    },
+    {
+      "task_id": "task_09",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 6,
+      "tests_total": 6,
+      "elapsed_ms": 9115,
+      "timestamp": "2026-01-28T20:58:55.455969"
+    },
+    {
+      "task_id": "task_10",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "general",
+      "passed": true,
+      "tests_passed": 9,
+      "tests_total": 9,
+      "elapsed_ms": 12632,
+      "timestamp": "2026-01-28T20:59:08.322777"
+    },
+    {
+      "task_id": "task_11",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "state_machine",
+      "passed": true,
+      "tests_passed": 7,
+      "tests_total": 7,
+      "elapsed_ms": 12817,
+      "timestamp": "2026-01-28T20:59:21.414547"
+    },
+    {
+      "task_id": "task_12",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "data_structure_algorithm",
+      "passed": true,
+      "tests_passed": 8,
+      "tests_total": 8,
+      "elapsed_ms": 10522,
+      "timestamp": "2026-01-28T20:59:32.205027"
+    },
+    {
+      "task_id": "task_13",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "math_numerical",
+      "passed": true,
+      "tests_passed": 9,
+      "tests_total": 9,
+      "elapsed_ms": 8625,
+      "timestamp": "2026-01-28T20:59:41.079969"
+    },
+    {
+      "task_id": "task_14",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 7,
+      "tests_total": 7,
+      "elapsed_ms": 7953,
+      "timestamp": "2026-01-28T20:59:49.278821"
+    },
+    {
+      "task_id": "task_15",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 8,
+      "tests_total": 8,
+      "elapsed_ms": 9672,
+      "timestamp": "2026-01-28T21:00:00.113405"
+    },
+    {
+      "task_id": "task_16",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": false,
+      "tests_passed": 3,
+      "tests_total": 4,
+      "elapsed_ms": 10987,
+      "timestamp": "2026-01-28T21:00:11.499892"
+    },
+    {
+      "task_id": "task_17",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "data_structure_algorithm",
+      "passed": true,
+      "tests_passed": 7,
+      "tests_total": 7,
+      "elapsed_ms": 8256,
+      "timestamp": "2026-01-28T21:00:19.999438"
+    },
+    {
+      "task_id": "task_18",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 10,
+      "tests_total": 10,
+      "elapsed_ms": 14891,
+      "timestamp": "2026-01-28T21:00:35.134506"
+    },
+    {
+      "task_id": "task_19",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "data_structure_algorithm",
+      "passed": true,
+      "tests_passed": 9,
+      "tests_total": 9,
+      "elapsed_ms": 9382,
+      "timestamp": "2026-01-28T21:00:44.753224"
+    },
+    {
+      "task_id": "task_20",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "math_numerical",
+      "passed": false,
+      "tests_passed": 0,
+      "tests_total": 1,
+      "elapsed_ms": 6748,
+      "timestamp": "2026-01-28T21:00:51.761766"
+    },
+    {
+      "task_id": "task_21",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 9,
+      "tests_total": 9,
+      "elapsed_ms": 10652,
+      "timestamp": "2026-01-28T21:01:02.666403"
+    },
+    {
+      "task_id": "task_22",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 8,
+      "tests_total": 8,
+      "elapsed_ms": 16058,
+      "timestamp": "2026-01-28T21:01:18.964466"
+    },
+    {
+      "task_id": "task_23",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 9,
+      "tests_total": 9,
+      "elapsed_ms": 7261,
+      "timestamp": "2026-01-28T21:01:26.476261"
+    },
+    {
+      "task_id": "task_24",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "data_structure_algorithm",
+      "passed": true,
+      "tests_passed": 8,
+      "tests_total": 8,
+      "elapsed_ms": 10150,
+      "timestamp": "2026-01-28T21:01:36.875032"
+    },
+    {
+      "task_id": "task_25",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "data_structure_algorithm",
+      "passed": false,
+      "tests_passed": 7,
+      "tests_total": 8,
+      "elapsed_ms": 9917,
+      "timestamp": "2026-01-28T21:01:47.051839"
+    },
+    {
+      "task_id": "task_26",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 9,
+      "tests_total": 9,
+      "elapsed_ms": 13228,
+      "timestamp": "2026-01-28T21:02:00.560355"
+    },
+    {
+      "task_id": "task_27",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "data_structure_algorithm",
+      "passed": true,
+      "tests_passed": 8,
+      "tests_total": 8,
+      "elapsed_ms": 11919,
+      "timestamp": "2026-01-28T21:02:12.709062"
+    },
+    {
+      "task_id": "task_28",
+      "condition": "STATELESS",
+      "model": "claude-opus-4-5-20251101",
+      "category": "concurrency",
+      "passed": true,
+      "tests_passed": 9,
+      "tests_total": 9,
+      "elapsed_ms": 14069,
+      "timestamp": "2026-01-28T21:02:27.012178"
+    }
+  ]
+}
