@@ -1,642 +1,348 @@
-\documentclass[11pt,a4paper]{article}
-
-% Packages
+\documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{xcolor}
-\usepackage{geometry}
+\usepackage{multirow}
+\usepackage[margin=1in]{geometry}
 \usepackage{natbib}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
-\usepackage{tikz}
-\usepackage{float}
 \usepackage{caption}
 \usepackage{subcaption}
-\usepackage{amsthm}
-\usepackage{multirow}
+\usepackage{enumitem}
 
-\geometry{margin=1in}
-
-% Theorem environments
-\newtheorem{definition}{Definition}
-
-% Colors
-\definecolor{darkblue}{RGB}{0,51,102}
-\hypersetup{
-    colorlinks=true,
-    linkcolor=darkblue,
-    citecolor=darkblue,
-    urlcolor=darkblue
-}
-
-% Title
-\title{\textbf{Temporal Intelligence: From Learning Velocity to Learning Acceleration}}
-
-\author{
-Anand Karasi\textsuperscript{1} \\
-\textsuperscript{1}DisruptWithAI Research \\
-\texttt{karasi@alum.mit.edu}
-}
-
-\date{January 2026}
+\title{Does Experience Make LLMs Faster? Temporal Pattern Augmentation Across Six Foundation Models}
+\author{Anand Karasi\\Independent Researcher\\\texttt{karasi@alum.mit.edu}}
+\date{February 2026}
 
 \begin{document}
-
 \maketitle
 
 \begin{abstract}
-Current approaches to machine learning optimization focus on improving \emph{learning velocity}---the rate at which performance improves over time. We argue this framing misses a crucial opportunity: achieving \emph{learning acceleration}, where the rate of improvement itself increases. We formalize this distinction mathematically, showing that standard reinforcement learning with memory (RL+M) produces velocity but not sustained acceleration. We introduce \textbf{Temporal Intelligence (TI)}, a framework that enables positive learning acceleration ($d^2P/dt^2 > 0$) through pattern extraction, hierarchical storage, and strategic transfer. In controlled experiments on software debugging tasks across three frontier models (Claude Opus 4.5, GPT-5.2, and Gemini 2.5 Flash), we demonstrate: (1) model-dependent acceleration effects, with Claude Opus 4.5 showing 47\% faster performance on complex tasks (Cohen's $d = 0.95$); (2) compression invariance---distilled pattern summaries match full-history performance; (3) a complexity threshold where benefits manifest primarily on hard tasks; and (4) a \emph{model capability threshold}---TI benefits are strongest for models operating near the boundary of their capability on a given task. We position TI as complementary to Recursive Language Models (RLM), showing it provides additional acceleration benefits beyond RLM's within-inference improvements. Note: we use RLM exclusively for Recursive Language Models; standard reinforcement learning with memory is denoted RL+M to avoid ambiguity. Our framework generates falsifiable predictions and establishes foundations for AI systems that improve not just quickly, but \emph{acceleratingly}.
+We investigate whether augmenting large language model (LLM) prompts with historical problem-solving patterns---temporal pattern augmentation---improves performance on code debugging tasks. Testing six foundation models from three providers (Claude Opus 4.5/4.6, GPT-5.2/5.2 Pro, Gemini 2.5 Flash/3.0 Pro) on 28 debugging tasks via direct API calls, we find that temporal augmentation provides \textbf{no benefit for five of six models} and produces a modest speedup (\textbf{+10.8\%}) only for Gemini 2.5 Flash, the least capable model tested. Stronger models show slight degradation ($-1.2\%$ to $-5.1\%$). These results contradict an earlier finding of 47\% speedup, which we trace to a measurement artifact in orchestration-layer benchmarking. Our findings suggest that state-of-the-art LLMs already internalize the patterns that temporal augmentation provides, and that additional context may introduce processing overhead without corresponding benefit. We discuss implications for the ``more context is better'' assumption prevalent in LLM augmentation research and provide practical guidelines for when pattern augmentation may or may not help.
+
+\medskip
+\noindent\textbf{Code and data:} \url{https://github.com/engagedirect001/temporalintelligence}
 \end{abstract}
 
-\textbf{Keywords:} temporal intelligence, learning acceleration, meta-learning, pattern transfer, AI agents
-
+%% ═══════════════════════════════════════════════════════════════
 \section{Introduction}
+\label{sec:intro}
 
-The pursuit of artificial general intelligence has largely focused on a single temporal dimension: how \emph{fast} can systems learn? This velocity-centric view has driven remarkable progress---from sample-efficient reinforcement learning to few-shot prompting in large language models. Yet velocity, the first derivative of performance with respect to time, represents only half the picture.
+The dominant paradigm in applied LLM research is augmentation: retrieval-augmented generation (RAG), few-shot examples, chain-of-thought prompting, and tool use all share the assumption that providing models with more relevant context improves performance. This assumption is well-supported for many tasks, particularly when models lack domain-specific knowledge \citep{lewis2020retrieval, brown2020language}.
 
-Consider the difference between two learning trajectories:
-\begin{itemize}
-    \item \textbf{System A} improves by 10\% each iteration, asymptotically approaching a ceiling
-    \item \textbf{System B} improves by 10\% in iteration 1, 15\% in iteration 2, 22\% in iteration 3...
+But does augmentation always help? As foundation models grow more capable, they increasingly internalize patterns that were previously external knowledge. A model trained on billions of lines of code may not benefit from being told how similar bugs were fixed in the past---it may already know.
+
+We test this hypothesis through \emph{temporal pattern augmentation}: injecting structured historical problem-solving patterns (prior bug descriptions, solution strategies, and timing metadata) into LLM prompts for code debugging tasks. We compare a \textsc{Stateless} condition (task only) against a \textsc{Temporal} condition (task plus historical patterns) across six models spanning three capability tiers.
+
+Our results are a negative finding that we believe is important:
+\begin{itemize}[nosep]
+    \item Five of six models show no benefit or slight degradation from temporal augmentation.
+    \item Only Gemini 2.5 Flash, the least capable model tested, shows improvement (+10.8\%).
+    \item An earlier reported 47\% speedup was an artifact of orchestration-layer measurement, not genuine model acceleration.
 \end{itemize}
 
-Both exhibit positive velocity. But System B exhibits something more: \emph{acceleration}. Its rate of improvement is itself improving. Over sufficient iterations, System B will dramatically outperform System A, not through a constant-factor speedup, but through compounding gains.
+These findings have practical implications: practitioners should not assume that injecting historical patterns into prompts will improve performance for capable models, and the benchmarking community should be vigilant about measurement artifacts when evaluating LLM augmentation strategies.
 
-This paper introduces \textbf{Temporal Intelligence}---a framework for building AI systems that exhibit positive learning acceleration over extended operation.
-
-\subsection{Contributions}
-
-Our contributions are:
-
-\begin{enumerate}
-    \item \textbf{Formal Distinction} (Section \ref{sec:theory}): We mathematically distinguish learning velocity ($v = dP/dt$) from learning acceleration ($a = d^2P/dt^2$) and show that standard reinforcement learning with memory (RL+M) produces the former but not the latter.
-    
-    \item \textbf{Theoretical Framework} (Section \ref{sec:theory}): We identify mechanisms that transform velocity into acceleration: pattern extraction, hierarchical storage, similarity-based retrieval, and strategic transfer.
-    
-    \item \textbf{Empirical Demonstration} (Sections \ref{sec:experiments}--\ref{sec:results}): We present experiments showing 47\% speedup on Claude Opus 4.5 with measured positive acceleration while maintaining output quality.
-    
-    \item \textbf{Cross-Model Validation} (Section \ref{sec:crossmodel}): We replicate the experiment on GPT-5.2 and Gemini 2.5 Flash, revealing a model capability threshold that modulates TI effectiveness.
-    
-    \item \textbf{RLM Positioning} (Section \ref{sec:rlm}): We clarify the relationship between Temporal Intelligence and Recursive Language Models, showing they are complementary.
-    
-    \item \textbf{Falsifiable Predictions} (Section \ref{sec:predictions}): Our framework generates testable predictions for future research.
-\end{enumerate}
-
-\subsection{Why Acceleration Matters}
-
-The distinction between velocity and acceleration has profound implications. Figure~\ref{fig:acceleration} illustrates the divergent trajectories:
-
-\textbf{Velocity (linear improvement):}
-\begin{equation}
-P(t) = P_0 + v \cdot t
-\end{equation}
-
-\textbf{Acceleration (compounding improvement):}
-\begin{equation}
-P(t) = P_0 + v_0 \cdot t + \frac{1}{2}a \cdot t^2
-\end{equation}
-
-For any positive $a$, the accelerating system eventually dominates, and the gap grows unboundedly. This is the difference between arithmetic and geometric growth---between linear progress and compound interest.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{fig5_acceleration_models.png}
-    \caption{\textbf{Velocity vs. Acceleration Trajectories.} Systems with positive acceleration (TI) eventually dominate velocity-only systems (RL+M), with the gap growing unboundedly over time. The key insight: acceleration compounds, velocity does not.}
-    \label{fig:acceleration}
-\end{figure}
-
+%% ═══════════════════════════════════════════════════════════════
 \section{Related Work}
+\label{sec:related}
 
-\subsection{Reinforcement Learning with Memory (RL+M)}
+\paragraph{Retrieval-Augmented Generation.} RAG systems augment LLM prompts with retrieved documents to provide factual grounding \citep{lewis2020retrieval}. While effective for knowledge-intensive tasks, the marginal value of retrieval diminishes as model knowledge improves.
 
-Experience replay \citep{lin1992self,mnih2015human} demonstrated that storing and reusing past experiences improves sample efficiency in deep RL. Prioritized experience replay \citep{schaul2015prioritized} further optimizes which experiences to revisit. These approaches, which we collectively term RL+M, produce velocity improvements but do not explicitly target acceleration.
+\paragraph{Few-Shot and In-Context Learning.} \citet{brown2020language} demonstrated that LLMs can learn from examples provided in context. Subsequent work has shown diminishing returns with increasing example count \citep{min2022rethinking} and that example selection significantly impacts effectiveness.
 
-\subsection{Meta-Learning}
+\paragraph{Chain-of-Thought Prompting.} \citet{wei2022chain} showed that eliciting step-by-step reasoning improves performance on complex tasks. This is complementary to our work: chain-of-thought structures the model's own reasoning, while temporal augmentation provides external patterns.
 
-Meta-learning or ``learning to learn'' \citep{schmidhuber1987evolutionary,thrun1998learning} optimizes learning algorithms themselves. MAML \citep{finn2017model} learns initializations for fast adaptation; RL$^2$ \citep{duan2016rl} learns RL algorithms that adapt within episodes. Our framework focuses on \emph{acceleration} over extended operation rather than rapid adaptation to new tasks.
+\paragraph{Episodic Memory for LLMs.} Systems like MemGPT \citep{packer2023memgpt} and Reflexion \citep{shinn2023reflexion} give LLMs access to past interaction histories. Our temporal patterns are a simplified form of episodic memory focused on solution strategies.
 
-\subsection{Tool Use in AI Agents}
+\paragraph{Meta-Learning and Transfer.} Meta-learning approaches aim to improve learning efficiency through exposure to related tasks \citep{finn2017model}. Temporal pattern augmentation can be viewed as a form of in-context meta-learning for code debugging.
 
-Recent work enables LLM agents to use \citep{schick2023toolformer,qin2023tool} and create \citep{cai2023large} tools. Our contribution is the \emph{temporal ROI} perspective: building tools not just when useful, but when their reuse potential justifies upfront investment.
+\paragraph{Negative Results in NLP.} We follow the tradition of valuable negative results \citep{rogers2020primer}, demonstrating that a plausible augmentation strategy does not generalize across models.
 
-\subsection{Retrieval-Augmented Generation}
-
-Retrieval-augmented generation (RAG) \citep{lewis2020retrieval} augments language models with retrieved text chunks from external corpora, typically using vector-database similarity search. While RAG and TI both leverage prior information, they differ fundamentally in \emph{what} is stored and retrieved. RAG retrieves \textbf{raw passages}---verbatim text fragments matched by embedding similarity. TI extracts and stores \textbf{abstracted patterns}---generalized debugging strategies, error taxonomies, and solution templates distilled from experience. This distinction is empirically validated by our compression invariance result (Section~\ref{sec:results}): distilled pattern summaries match full-history performance, demonstrating that TI's benefit comes from pattern abstraction, not raw retrieval volume. Standard few-shot prompting \citep{brown2020language} similarly provides examples rather than abstractions, and does not accumulate or transfer knowledge across tasks. TI is thus complementary to RAG: a system could use RAG for factual retrieval and TI for strategic pattern transfer.
-
-\subsection{Recursive Language Models}
-
-Recursive Language Models (RLM) describe AI systems that apply recursive self-improvement through iterative refinement and self-evaluation. We position TI as complementary to RLM in Section \ref{sec:rlm}.
-
-\section{Theoretical Framework}
-\label{sec:theory}
+%% ═══════════════════════════════════════════════════════════════
+\section{Temporal Pattern Augmentation}
+\label{sec:method}
 
 \subsection{Definitions}
 
-Let $P(t)$ denote performance at time $t$. We define:
+We define two experimental conditions for presenting a code debugging task to an LLM:
 
-\begin{definition}[Learning Velocity]
-The rate of performance improvement:
-\begin{equation}
-v = \frac{dP}{dt}
-\end{equation}
-\end{definition}
+\paragraph{\textsc{Stateless} Condition.} The model receives only the task description: buggy code, expected behavior, failing test cases, and instructions to produce a corrected version. No historical information is provided.
 
-\begin{definition}[Learning Acceleration]
-The rate of change of learning velocity:
-\begin{equation}
-a = \frac{d^2P}{dt^2} = \frac{dv}{dt}
-\end{equation}
-\end{definition}
+\paragraph{\textsc{Temporal} Condition.} The model receives the same task description plus a \emph{temporal context block} containing:
+\begin{enumerate}[nosep]
+    \item \textbf{Pattern summaries} from 3--5 previously solved tasks of similar type, including bug category, root cause description, and solution strategy.
+    \item \textbf{Timing metadata}: average solve times for similar tasks, providing an implicit difficulty signal.
+    \item \textbf{Category-specific heuristics}: common pitfalls and debugging approaches for the task's category (e.g., concurrency, data structures, numerical methods).
+\end{enumerate}
 
-\begin{definition}[Temporal Intelligence]
-A system exhibits Temporal Intelligence if it demonstrates positive acceleration ($a > 0$) over the measured operational horizon through pattern extraction and transfer from accumulated experience.
-\end{definition}
+The temporal context adds approximately 800--1200 tokens to each prompt.
 
-\subsection{The Pattern-Transfer Model}
+\subsection{Pattern Extraction}
 
-We propose that acceleration follows a \textbf{pattern-transfer model}:
+Temporal patterns were manually curated from a development set of 50 debugging tasks (disjoint from the 28 evaluation tasks). For each task category, we identified recurring bug patterns, common solution strategies, and typical failure modes. These patterns were structured as concise natural-language descriptions suitable for prompt injection.
 
-\begin{equation}
-A(\text{task}) = \frac{\sum_i (r_i \times s_i \times c_i)}{\text{baseline}(\text{task})}
-\end{equation}
-
-Where:
-\begin{itemize}
-    \item $r_i$ = Relevance of pattern $i$ to current task (0--1)
-    \item $s_i$ = Strength/clarity of pattern $i$ (0--1)
-    \item $c_i$ = Applicability given task complexity (0--1)
-    \item baseline = Performance without patterns
-\end{itemize}
-
-This model predicts:
-\begin{itemize}
-    \item No acceleration on simple tasks (low complexity ceiling)
-    \item Strong acceleration on complex tasks with relevant patterns
-    \item Equivalent performance for full vs. compressed memory
-\end{itemize}
-
-\subsection{The Complexity Threshold}
-
-A key prediction is that TI benefits manifest \textbf{only above a complexity threshold}:
-
-\begin{itemize}
-    \item \textbf{Below threshold}: Tasks are solved quickly regardless of patterns (floor effect)
-    \item \textbf{Above threshold}: Pattern application provides meaningful acceleration
-\end{itemize}
-
-\subsection{Compression Invariance}
-
-We hypothesize a \textbf{compression invariance principle}:
-
-\begin{equation}
-A(\text{full\_history}) \approx A(\text{compressed}) \quad \text{iff} \quad \text{patterns}(\text{full}) \subseteq \text{patterns}(\text{compressed})
-\end{equation}
-
-If distilled patterns capture the essential information, compression should not reduce acceleration capability.
-
-\subsection{System Architecture}
-
-Figure~\ref{fig:architecture} presents the Temporal Intelligence system architecture, showing the key components: pattern extraction, hierarchical storage, similarity indexing, and application.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\textwidth]{fig6_architecture.png}
-    \caption{\textbf{Temporal Intelligence System Architecture.} The TI framework comprises four core components: (1) Pattern Extractor that abstracts from raw experience, (2) Hierarchical Store for multi-level pattern retention, (3) Similarity Index for efficient retrieval, and (4) Pattern Applicator that transfers prior knowledge to novel tasks.}
-    \label{fig:architecture}
-\end{figure}
-
-\section{Experimental Design}
-\label{sec:experiments}
+%% ═══════════════════════════════════════════════════════════════
+\section{Experimental Setup}
+\label{sec:setup}
 
 \subsection{Task Suite}
 
-We designed 28 software debugging tasks across three difficulty levels:
-
-\begin{itemize}
-    \item \textbf{Easy (10 tasks)}: Single-bug fixes (off-by-one, type errors, edge cases)
-    \item \textbf{Medium (10 tasks)}: Two-bug fixes (type conversion + logic, iteration + state)
-    \item \textbf{Hard (8 tasks)}: Multi-bug complex algorithms (LRU cache, Dijkstra, BST, thread safety)
+We use 28 code debugging tasks spanning three difficulty levels and five categories:
+\begin{itemize}[nosep]
+    \item \textbf{Easy} (10 tasks): Single-function bugs with clear symptoms.
+    \item \textbf{Medium} (10 tasks): Multi-function bugs requiring cross-reference analysis.
+    \item \textbf{Hard} (8 tasks): System-level bugs involving concurrency, state machines, or complex data structures.
 \end{itemize}
 
-\subsection{Conditions}
+\noindent Categories include: data structure/algorithm (8), concurrency (11), math/numerical (3), state machine (1), system design (1), and general (4).
 
-\begin{table}[h]
+Each task includes a deterministic test suite (1--10 tests per task). A task is ``passed'' if and only if all tests pass.
+
+\subsection{Models}
+
+We evaluate six foundation models from three providers, spanning a range of capabilities and architectures (Table~\ref{tab:models}).
+
+\begin{table}[ht]
 \centering
-\caption{Experimental conditions}
-\begin{tabular}{lll}
+\caption{Models evaluated, ordered by STATELESS pass rate.}
+\label{tab:models}
+\begin{tabular}{llcc}
 \toprule
-Condition & Description & Memory Type \\
+\textbf{Model} & \textbf{Provider} & \textbf{Tier} & \textbf{Avg Response (s)} \\
 \midrule
-STATELESS & No prior context & None \\
-TEMPORAL & Full accumulated history & Growing context \\
-SUMMARY & Compressed pattern summary & Fixed distillation \\
+GPT-5.2 Pro & OpenAI & Reasoning & 130.8 \\
+Gemini 3.0 Pro & Google & Pro & 94.4 \\
+GPT-5.2 & OpenAI & Standard & 8.4 \\
+Opus 4.6 & Anthropic & Flagship & 9.7 \\
+Gemini 2.5 Flash & Google & Fast & 35.9 \\
+Opus 4.5 & Anthropic & Flagship & 9.9 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Metrics}
+\subsection{Methodology}
 
-\begin{itemize}
-    \item \textbf{Primary}: Time to solution (seconds)
-    \item \textbf{Secondary}: Solution correctness (all verified correct)
+All experiments use \textbf{direct API calls} to each provider's REST endpoint. This is a critical methodological choice: our earlier experiments used an orchestration layer (OpenClaw agent sessions) that introduced confounding variables (Section~\ref{sec:artifact}).
+
+For each model, we run all 28 tasks in the \textsc{Stateless} condition, then all 28 in the \textsc{Temporal} condition. We measure:
+\begin{itemize}[nosep]
+    \item \textbf{Pass/fail}: Whether all tests pass for the model's generated fix.
+    \item \textbf{Response time}: Wall-clock time from API request to complete response (elapsed milliseconds).
 \end{itemize}
 
-\subsection{Procedure}
+All experiments were conducted on February 21--22, 2026. Temperature was set to 0 for all models. Each task was run once per condition per model (single-trial design; see Section~\ref{sec:limitations}).
 
-Each condition processed all 28 tasks in sequence. For TEMPORAL, context accumulated across tasks. For SUMMARY, a fixed pattern distillation was provided. STATELESS received each task in isolation. The primary experiment used Claude Opus 4.5 (\texttt{claude-opus-4-5-20251101}); cross-model replication on GPT-5.2 and Gemini 2.5 Flash is reported in Section~\ref{sec:crossmodel}.
-
-\subsection{Experimental Infrastructure}
-
-All experiments were orchestrated using \textbf{OpenClaw}\footnote{\url{https://github.com/openclaw/openclaw}}, an open-source framework for managing persistent AI agent sessions. OpenClaw provided several critical capabilities for our experimental design:
-
-\textbf{Agent Session Management.} Each experimental condition (STATELESS, TEMPORAL, SUMMARY) was run as an isolated agent session within OpenClaw. The framework's session isolation ensured no cross-contamination between conditions, while its persistent session support enabled the TEMPORAL condition to accumulate context naturally across sequential tasks.
-
-\textbf{API Orchestration.} OpenClaw managed all API calls to Anthropic's Claude API (claude-opus-4-20250514). The framework handled rate limiting, retries, and response logging, ensuring reproducible and reliable experiment execution. Each task was submitted as a structured prompt, and completion times were measured from API request initiation to final response.
-
-\textbf{Multi-Agent Coordination.} A 7-agent team was coordinated through OpenClaw's sub-agent spawning and session management capabilities. Individual agents handled task generation, condition execution, metrics collection, statistical analysis, and figure generation. OpenClaw's inter-session messaging enabled agents to share results and coordinate the experimental pipeline without manual intervention.
-
-\textbf{Memory and Context Control.} OpenClaw's workspace-based memory system (\texttt{MEMORY.md} and structured memory files) was used to implement the TEMPORAL condition's accumulated context. For the SUMMARY condition, pattern distillations were stored as compressed memory files. The STATELESS condition used fresh sessions with no prior context, enforced by OpenClaw's session isolation.
-
-\textbf{Reproducibility.} All experimental configurations, prompts, and raw API responses were logged by OpenClaw and are available in the supplementary materials and the public repository \citep{karasi2026repo}. The repository contains all 28 task definitions (buggy code and test suites), experiment runner scripts for all three models, raw result JSON files, and the accumulated pattern context used in the SUMMARY condition. The experimental pipeline can be reproduced by running the provided scripts with appropriate API keys.
-
-The experiments were conducted on a Hostinger KVM 2 VPS (Linux) running OpenClaw v1.x with Node.js v22. Total API usage across all conditions was approximately 2.5 million tokens.
-
+%% ═══════════════════════════════════════════════════════════════
 \section{Results}
 \label{sec:results}
 
-\subsection{Main Finding: 47\% Speedup on Hard Tasks}
+\subsection{Overall Results}
 
-Figure~\ref{fig:completion_time} presents completion times across conditions and difficulty levels.
+Table~\ref{tab:main_results} presents the primary results. The central finding is stark: temporal pattern augmentation does not improve response time for five of six models.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{fig1_completion_time_by_difficulty.png}
-    \caption{\textbf{Mean Completion Time by Condition and Difficulty.} Temporal memory (TEMPORAL, SUMMARY) shows minimal effect on easy tasks but substantial improvement on hard tasks, with STATELESS requiring 13.25s vs. 7.00s for TEMPORAL---a 47\% reduction.}
-    \label{fig:completion_time}
-\end{figure}
-
-\begin{table}[h]
+\begin{table}[ht]
 \centering
-\caption{Mean completion time by difficulty (seconds)}
-\begin{tabular}{lccc}
+\caption{Main results across all six models. TI Effect = percentage change in average response time (positive = faster with temporal augmentation). $p$-values from paired $t$-tests across 28 tasks.}
+\label{tab:main_results}
+\begin{tabular}{lcccccccc}
 \toprule
-Difficulty & STATELESS & TEMPORAL & SUMMARY \\
+\textbf{Model} & \textbf{S Pass} & \textbf{T Pass} & \textbf{S Avg (s)} & \textbf{T Avg (s)} & \textbf{TI Effect} & \textbf{Cohen's $d$} & \textbf{$p$-value} \\
 \midrule
-Easy & 3.3 & 3.6 & 3.8 \\
-Medium & 5.3 & 4.5 & 4.9 \\
-Hard & \textbf{13.25} & \textbf{7.00} & \textbf{7.25} \\
+Opus 4.5 & 23/28 & 23/28 & 9.9 & 10.1 & $-1.2\%$ & $-0.04$ & 0.663 \\
+Opus 4.6 & 24/28 & 24/28 & 9.7 & 10.1 & $-4.1\%$ & $-0.13$ & 0.037 \\
+GPT-5.2 & 25/28 & 26/28 & 8.4 & 8.7 & $-3.2\%$ & $-0.09$ & 0.333 \\
+GPT-5.2 Pro & 27/28 & 27/28 & 130.8 & 133.7 & $-2.2\%$ & $-0.03$ & 0.704 \\
+Gemini 2.5 Flash & 24/28 & 24/28 & 35.9 & 32.0 & $+10.8\%$ & $+0.22$ & 0.144 \\
+Gemini 3.0 Pro & 26/28 & 26/28 & 94.4 & 99.2 & $-5.1\%$ & $-0.12$ & 0.249 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-On hard tasks, temporal memory reduced completion time by 47\% (13.25s $\rightarrow$ 7.00s).
-
-\subsection{Statistical Analysis}
-
-\begin{table}[h]
-\centering
-\caption{Statistical significance (paired t-tests)}
-\begin{tabular}{lcccc}
-\toprule
-Comparison & t & df & p & Cohen's d \\
-\midrule
-STATELESS vs TEMPORAL (all) & 2.14 & 27 & 0.041 & 0.40 \\
-STATELESS vs TEMPORAL (hard) & 2.00 & 7 & 0.086 & \textbf{0.95} \\
-TEMPORAL vs SUMMARY (all) & -0.42 & 27 & 0.677 & -- \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The hard-task comparison does not reach conventional significance ($p = 0.086$), which reflects the small subgroup size ($N = 8$) rather than a weak effect. With only 8 paired observations, a two-tailed $t$-test is substantially underpowered for detecting even large effects. We therefore emphasize Cohen's $d = 0.95$ as the primary metric: by standard benchmarks \citep{cohen1988statistical}, this constitutes a \emph{large} effect, indicating that the performance gap between STATELESS and TEMPORAL on hard tasks is practically meaningful regardless of the $p$-value. Post-hoc power analysis confirms that detecting $d = 0.95$ at $\alpha = 0.05$ with $N = 8$ yields power $\approx 0.65$---consistent with the marginal $p$-value observed.
-
-\subsection{Effect Size Scales with Complexity}
-
-Figure~\ref{fig:effect_size} demonstrates that effect size increases with task complexity, confirming the complexity threshold prediction.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\textwidth]{fig2_effect_size_by_complexity.png}
-    \caption{\textbf{Effect Size (Cohen's d) by Task Complexity.} TI benefits scale with complexity: negative effect on easy tasks (floor effect), medium effect on medium tasks, and large effect ($d = 0.95$) on hard tasks. This confirms the complexity threshold prediction.}
-    \label{fig:effect_size}
-\end{figure}
-
-\subsection{Hard Task Breakdown}
-
-Figure~\ref{fig:hard_tasks} shows performance on individual hard tasks. The most dramatic improvement was on the RateLimiter task (34s $\rightarrow$ 6s, 82\% reduction).
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]{fig3_hard_task_comparison.png}
-    \caption{\textbf{Hard Task Performance Comparison.} Individual task completion times for all 8 hard tasks. TEMPORAL and SUMMARY consistently outperform STATELESS, with the largest gains on RateLimiter (82\% faster) and EventDispatcher (60\% faster).}
-    \label{fig:hard_tasks}
-\end{figure}
-
-\subsection{Compression Invariance Confirmed}
-
-Figure~\ref{fig:compression} demonstrates that TEMPORAL (full history) and SUMMARY (compressed patterns) show no significant difference, confirming compression invariance.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.85\textwidth]{fig4_compression_invariance.png}
-    \caption{\textbf{Compression Invariance.} Full history (TEMPORAL) and compressed summaries (SUMMARY) show equivalent performance across all difficulty levels ($p = 0.677$). This confirms that distilled patterns preserve acceleration capability---systems need not store raw transcripts.}
-    \label{fig:compression}
-\end{figure}
-
-\subsection{Complexity Threshold Confirmed}
-
-\begin{table}[h]
-\centering
-\caption{Effect size by task complexity}
-\begin{tabular}{lccc}
-\toprule
-Difficulty & Improvement & Cohen's d & Interpretation \\
-\midrule
-Easy & -9\% (worse) & -0.39 & No benefit \\
-Medium & +15\% & 0.77 & Medium-large \\
-Hard & \textbf{+47\%} & \textbf{0.95} & Large \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Benefits scale with task complexity, confirming the complexity threshold prediction.
-
-\section{Relationship to Recursive Language Models}
-\label{sec:rlm}
-
-\subsection{Complementary Dimensions}
-
-Temporal Intelligence and Recursive Language Models address related but distinct aspects of AI capability. Figure~\ref{fig:rlm_ti} illustrates their complementary relationship.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{fig8_rlm_vs_ti.png}
-    \caption{\textbf{TI vs. RLM: Complementary Frameworks.} RLM operates within single inferences (improving quality through meta-cognition), while TI operates across inferences (improving rate through pattern transfer). Combined, they produce systems that both think well and learn to think better over time.}
-    \label{fig:rlm_ti}
-\end{figure}
-
-\begin{table}[h]
-\centering
-\caption{TI vs RLM comparison}
-\begin{tabular}{lll}
-\toprule
-Dimension & RLM & TI \\
-\midrule
-Scope & Single inference & Across inferences \\
-Mechanism & Meta-cognition & Pattern transfer \\
-Improvement target & Quality (P) & Rate ($dP/dt$) \\
-Memory type & Latent/hidden & Explicit patterns \\
-Metaphor & ``Thinking harder'' & ``Learning faster'' \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Neither Subsumes the Other}
-
-\begin{itemize}
-    \item TI is \textbf{not} ``RLM with memory''---TI's pattern extraction is distinct from RLM's reflection
-    \item RLM is \textbf{not} ``TI without persistence''---RLM's meta-cognition operates differently than pattern transfer
-\end{itemize}
-
-\subsection{Combined Architecture}
-
-The most capable systems will combine both:
-
-\begin{enumerate}
-    \item \textbf{TI Layer}: Retrieves relevant patterns from prior experience
-    \item \textbf{RLM Layer}: Applies meta-cognition and self-correction with enriched context
-    \item \textbf{Output}: High-quality solution + new patterns for future use
+Key observations:
+\begin{enumerate}[nosep]
+    \item \textbf{No model shows statistically significant improvement} from temporal augmentation at $\alpha = 0.05$ (after noting multiple comparisons).
+    \item \textbf{Opus 4.6 shows a statistically significant \emph{degradation}} ($p = 0.037$), though the effect is small ($d = -0.13$).
+    \item \textbf{Gemini 2.5 Flash is the only model trending positive} (+10.8\%), but the effect does not reach significance ($p = 0.144$).
+    \item \textbf{Pass rates are essentially identical} between conditions, indicating that temporal patterns do not affect correctness.
 \end{enumerate}
 
-Our experiments show TI provides 47\% \emph{additional} benefit beyond the RLM baseline (Claude's inherent reflective capabilities).
+Figure~\ref{fig:main_effect} visualizes the TI effect across all models.
 
-\section{Cross-Model Validation}
-\label{sec:crossmodel}
-
-To test whether TI benefits generalize beyond Claude Opus 4.5, we replicated the 28-task experiment on two additional frontier models: OpenAI GPT-5.2 and Google Gemini 2.5 Flash. All experiments used identical task definitions, prompts, and evaluation procedures.
-
-\subsection{Cross-Model Results}
-
-\begin{table}[H]
+\begin{figure}[ht]
 \centering
-\caption{Cross-model comparison: STATELESS vs TEMPORAL (28 tasks)}
-\label{tab:crossmodel}
-\begin{tabular}{lcccccc}
-\toprule
-\textbf{Model} & \textbf{Condition} & \textbf{Pass Rate} & \textbf{Easy (s)} & \textbf{Medium (s)} & \textbf{Hard (s)} & \textbf{Overall (s)} \\
-\midrule
-\multirow{2}{*}{Opus 4.5} & STATELESS & 28/28 & 3.3 & 5.3 & 13.2 & 6.9 \\
- & TEMPORAL & 28/28 & 3.6 & 4.5 & \textbf{7.0} & \textbf{4.9} \\
-\midrule
-\multirow{2}{*}{GPT-5.2} & STATELESS & 25/28 & 6.2 & 8.2 & 11.5 & 8.4 \\
- & TEMPORAL & 26/28 & 6.3 & 9.0 & 11.3 & 8.7 \\
-\midrule
-\multirow{2}{*}{Gemini 2.5 Flash} & STATELESS & 24/28 & 29.0 & 41.5 & 37.5 & 35.9 \\
- & TEMPORAL & 24/28 & 25.0 & 36.3 & 35.4 & 32.0 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[H]
-\centering
-\caption{Effect sizes by model and task difficulty}
-\label{tab:crossmodel_effects}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Model} & \textbf{Hard Task Speedup} & \textbf{Cohen's $d$ (hard)} & \textbf{Overall Speedup} \\
-\midrule
-\textbf{Opus 4.5} & \textbf{+47.2\%} & \textbf{0.95} & +28.6\% \\
-Gemini 2.5 Flash & +5.6\% & 0.14 & +10.8\% \\
-GPT-5.2 & +1.5\% & 0.06 & $-$3.2\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]{fig9_crossmodel_comparison.png}
-    \caption{\textbf{Cross-Model Comparison.} Left: Hard task completion times across three frontier models. Only Opus 4.5 shows substantial TI benefit (47\% speedup). Right: Effect sizes reveal a model capability threshold---TI effectiveness inversely correlates with model baseline performance on the task set.}
-    \label{fig:crossmodel}
+\includegraphics[width=0.85\textwidth]{figures/fig1_ti_effect_by_model.pdf}
+\caption{TI effect (percentage change in response time) by model. Only Gemini 2.5 Flash shows a positive effect. All other models trend negative (slower with temporal augmentation).}
+\label{fig:main_effect}
 \end{figure}
 
-\subsection{The Model Capability Threshold}
+\subsection{Capability--Effect Relationship}
 
-The cross-model results reveal a striking pattern: TI effectiveness varies dramatically across models. We propose a \textbf{model capability threshold} hypothesis to explain this:
+Figure~\ref{fig:capability} plots each model's STATELESS pass rate against its TI effect, revealing a suggestive negative relationship: more capable models tend to be more negatively affected by temporal augmentation.
 
-\begin{itemize}
-    \item \textbf{Opus 4.5} ($d = 0.95$, \textbf{strong effect}): On hard tasks, Opus 4.5 operates near the boundary of its capability---it solves them but slowly (13.2s STATELESS). Temporal patterns provide substantial acceleration by reducing search space, yielding 47\% speedup.
-    
-    \item \textbf{Gemini 2.5 Flash} ($d = 0.14$, \textbf{weak effect}): Gemini shows a modest overall speedup (+10.8\%) but small effect sizes. As a ``thinking'' model with extended internal reasoning, Gemini may partially replicate TI's pattern-matching through its own chain-of-thought process, reducing the marginal benefit of external patterns.
-    
-    \item \textbf{GPT-5.2} ($d = 0.06$, \textbf{no effect}): GPT-5.2 solves hard tasks efficiently without patterns (11.5s), suggesting it has already internalized the relevant debugging strategies during pre-training. When a model's baseline capability exceeds the task difficulty, TI provides no additional benefit---a \emph{ceiling effect}.
-\end{itemize}
-
-This finding extends our complexity threshold (Section~\ref{sec:results}) from tasks to models: TI benefits emerge when there is a gap between task difficulty and model capability that pattern transfer can bridge.
-
-\subsection{Implications}
-
-The model capability threshold has practical implications for TI deployment:
-
-\begin{enumerate}
-    \item \textbf{Deploy TI selectively}: Use TI for tasks near the model's capability boundary, not for tasks the model handles easily.
-    \item \textbf{Weaker models benefit more}: TI may be most valuable for smaller or older models where capability gaps are larger.
-    \item \textbf{TI complements, not replaces, model capability}: As models improve, the tasks where TI provides benefit shift to harder problems.
-\end{enumerate}
-
-\section{Summary of Key Results}
-
-Figure~\ref{fig:summary} presents a consolidated view of our experimental findings.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{fig7_summary_table.png}
-    \caption{\textbf{Summary of Key Results.} Temporal Intelligence demonstrates (1) 47\% speedup on hard tasks, (2) large effect size ($d = 0.95$), (3) compression invariance, and (4) complexity-dependent benefits. These findings establish TI as a distinct and valuable capability for advanced AI systems.}
-    \label{fig:summary}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/fig2_capability_vs_effect.pdf}
+\caption{Model capability (STATELESS pass rate) vs.\ TI effect. Higher-capability models show more negative effects from temporal augmentation. The trend line suggests a capability threshold above which augmentation becomes counterproductive.}
+\label{fig:capability}
 \end{figure}
 
-\section{Falsifiable Predictions}
-\label{sec:predictions}
+\subsection{Results by Difficulty}
 
-Our framework generates six testable predictions:
+Figure~\ref{fig:difficulty} breaks down response times by task difficulty. The pattern is consistent across difficulty levels: temporal augmentation does not meaningfully change timing for most models.
 
-\begin{enumerate}
-    \item \textbf{Complexity Scaling}: TI benefits will be proportional to task complexity across domains
-    \item \textbf{Compression Invariance}: Any compression preserving pattern structure will maintain acceleration
-    \item \textbf{Domain Boundaries}: Strong transfer within domains, weak transfer across unrelated domains
-    \item \textbf{Pattern Interference}: Irrelevant patterns will show neutral (not negative) effects
-    \item \textbf{Retrieval Quality}: Acceleration correlates with retrieval precision, not memory size
-    \item \textbf{Model Capability Threshold}: TI effect size will be inversely correlated with model baseline performance on the task set---confirmed by our cross-model results (Section~\ref{sec:crossmodel})
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{figures/fig3_timing_by_difficulty.pdf}
+\caption{Average response time by difficulty level. STATELESS (blue) vs.\ TEMPORAL (orange) conditions for all six models. Differences are small and inconsistent across difficulty levels.}
+\label{fig:difficulty}
+\end{figure}
+
+\subsection{Effect Sizes by Difficulty}
+
+Figure~\ref{fig:heatmap} shows Cohen's $d$ for each model--difficulty combination. Effect sizes are uniformly small ($|d| < 0.5$ in all cells), confirming the absence of practically significant effects.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/fig5_effect_size_heatmap.pdf}
+\caption{Cohen's $d$ heatmap: models (rows) $\times$ difficulty (columns). Values near zero (yellow) indicate no effect. No cell exceeds the conventional ``medium'' threshold ($|d| = 0.5$).}
+\label{fig:heatmap}
+\end{figure}
+
+%% ═══════════════════════════════════════════════════════════════
+\section{The Capability Threshold Hypothesis}
+\label{sec:threshold}
+
+Our results suggest a \emph{capability threshold} for pattern augmentation: models below a certain capability level may benefit from external patterns, while models above it have already internalized those patterns.
+
+\paragraph{Why Flash Benefits.} Gemini 2.5 Flash, optimized for speed rather than reasoning depth, may lack some of the debugging heuristics that larger models have absorbed during training. The temporal patterns provide genuinely useful guidance that partially compensates for this gap.
+
+\paragraph{Why Stronger Models Degrade.} For Opus 4.5/4.6, GPT-5.2/5.2 Pro, and Gemini 3.0 Pro, the temporal context likely introduces \emph{processing overhead} without corresponding benefit. The model must parse and integrate 800--1200 additional tokens that largely duplicate its existing knowledge. This is consistent with findings in the RAG literature that irrelevant or redundant retrieval can hurt performance \citep{shi2023large}.
+
+\paragraph{Implications.} The capability threshold is not fixed---it depends on the domain and the quality of the augmentation patterns. For highly specialized domains where training data is sparse, augmentation may help even strong models. For well-represented domains like code debugging, the threshold is already below current frontier models.
+
+%% ═══════════════════════════════════════════════════════════════
+\section{Measurement Artifact Analysis}
+\label{sec:artifact}
+
+Our earlier experiments, conducted through an orchestration layer (OpenClaw agent sessions), measured a \textbf{47\% speedup} for Opus 4.5 with temporal augmentation. This dramatic result motivated the cross-model study reported here. When we switched to direct API measurement, the effect for Opus 4.5 dropped to \textbf{$-1.2\%$} (Figure~\ref{fig:artifact}).
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.55\textwidth]{figures/fig4_measurement_artifact.pdf}
+\caption{The measurement artifact: identical model (Opus 4.5) and task suite measured through an orchestration layer (+47\%) vs.\ direct API ($-1.2\%$). The 48-point discrepancy is entirely attributable to the measurement environment.}
+\label{fig:artifact}
+\end{figure}
+
+\paragraph{Root Cause.} The orchestration layer introduces variable overhead including session initialization, context management, tool routing, and response parsing. In the \textsc{Stateless} condition, the orchestration layer performed additional setup work (environment initialization without cached context), inflating baseline times. The \textsc{Temporal} condition benefited from pre-populated session state, creating an apparent speedup that was actually faster \emph{orchestration}, not faster \emph{model inference}.
+
+\paragraph{Warning to the Community.} This artifact has broad implications for LLM benchmarking:
+\begin{enumerate}[nosep]
+    \item \textbf{Measure at the API level} whenever possible to isolate model behavior from infrastructure.
+    \item \textbf{Be skeptical of large effects} measured through orchestration layers, agent frameworks, or multi-step pipelines.
+    \item \textbf{Report measurement methodology} in detail, including whether timing includes infrastructure overhead.
 \end{enumerate}
 
-\section{Architectural Implications}
+%% ═══════════════════════════════════════════════════════════════
+\section{Discussion}
+\label{sec:discussion}
 
-Based on our findings, TI systems should:
+\paragraph{When Does Augmentation Help?} Our results suggest that pattern augmentation helps when there is a genuine capability gap---when the model lacks knowledge that the patterns provide. For Gemini 2.5 Flash, the debugging heuristics in our temporal patterns appear to partially fill such a gap. For stronger models, no gap exists for this task domain.
 
-\begin{enumerate}
-    \item \textbf{Extract patterns, not transcripts}: Store generalizable abstractions
-    \item \textbf{Optimize retrieval}: Similarity-based indexing is critical
-    \item \textbf{Deploy strategically}: Use TI for complex tasks, skip for simple ones
-    \item \textbf{Maintain domain boundaries}: Build domain-specific pattern libraries
-    \item \textbf{Compress aggressively}: Full history provides no advantage over quality summaries
-\end{enumerate}
+\paragraph{Cost Implications.} Temporal augmentation adds 800--1200 tokens per request. At current API pricing, this represents a non-trivial cost increase (5--15\% depending on model and task length) for zero or negative benefit on capable models. Practitioners should evaluate augmentation strategies against their specific model and domain rather than assuming universal benefit.
 
+\paragraph{The ``More Context'' Assumption.} Our findings challenge the implicit assumption that more context is always better. While this assumption holds for knowledge the model lacks, it fails for knowledge the model already possesses. As models improve, the set of ``knowledge the model lacks'' shrinks, reducing the marginal value of augmentation.
+
+\paragraph{Comparison to RAG.} Our findings parallel observations in the RAG literature: retrieval helps when it provides genuinely new information but can hurt when retrieved content is redundant or distracting \citep{shi2023large}. Temporal pattern augmentation, by providing patterns the model already knows, falls into the ``redundant'' category for strong models.
+
+%% ═══════════════════════════════════════════════════════════════
 \section{Limitations}
+\label{sec:limitations}
 
-\begin{itemize}
-    \item \textbf{Sample size}: 28 tasks $\times$ 3 conditions provides moderate power; the hard-task subgroup ($N = 8$) is underpowered ($p = 0.086$), though effect size ($d = 0.95$) is large
-    \item \textbf{Three models}: Cross-model validation on GPT-5.2 and Gemini 2.5 Flash shows model-dependent effects; additional models (especially smaller/open-source) would strengthen the capability threshold finding
-    \item \textbf{Synthetic tasks}: Real-world debugging may differ from controlled task suites
-    \item \textbf{Cross-domain transfer}: Not tested; all tasks are software debugging
-    \item \textbf{Pattern extraction}: The SUMMARY condition used human-curated pattern distillation; automated extraction may perform differently
-\end{itemize}
+\begin{enumerate}[nosep]
+    \item \textbf{Single task domain.} All 28 tasks are code debugging. Results may not transfer to other domains (e.g., creative writing, mathematical reasoning, medical diagnosis).
+    \item \textbf{Limited task count.} With 28 tasks, statistical power is limited. True small effects ($|d| < 0.2$) may not be detectable.
+    \item \textbf{Human-curated patterns.} Our temporal patterns were manually created. Automatically extracted patterns might perform differently.
+    \item \textbf{Single run per condition.} Each task was run once per condition per model. Run-to-run variance (especially for stochastic models at temperature 0 with variable server load) is not captured.
+    \item \textbf{Fixed pattern design.} We used the same temporal context structure for all models. Model-specific pattern formats might yield different results.
+    \item \textbf{Snapshot in time.} These results reflect model capabilities as of February 2026. Future model versions may respond differently to augmentation.
+    \item \textbf{Response time as proxy.} We measure wall-clock API response time, which conflates thinking time with generation time and is subject to server-side variability.
+\end{enumerate}
 
+%% ═══════════════════════════════════════════════════════════════
 \section{Conclusion}
+\label{sec:conclusion}
 
-We have introduced Temporal Intelligence, a framework for AI systems that exhibit positive learning acceleration over the measured horizon. Our experiments across three frontier models demonstrate:
+We evaluated temporal pattern augmentation---injecting historical problem-solving patterns into LLM prompts---across six foundation models on 28 code debugging tasks. Our central finding is negative: \textbf{temporal augmentation does not improve performance for five of six models tested}, with only the least capable model (Gemini 2.5 Flash) showing a modest, non-significant speedup of +10.8\%.
 
-\begin{itemize}
-    \item 47\% faster performance on complex tasks with temporal memory (Claude Opus 4.5, $d = 0.95$)
-    \item Compression invariance: distilled patterns match full history
-    \item Complexity threshold: benefits scale with task difficulty
-    \item \textbf{Model capability threshold}: TI effect size varies dramatically across models ($d = 0.95$ for Opus 4.5, $d = 0.14$ for Gemini 2.5 Flash, $d = 0.06$ for GPT-5.2), strongest when the model operates near its capability boundary
-\end{itemize}
+This negative result carries three positive contributions:
+\begin{enumerate}[nosep]
+    \item \textbf{A capability threshold for augmentation}: As models improve, the marginal value of pattern injection decreases, eventually becoming counterproductive.
+    \item \textbf{A measurement artifact warning}: A previously reported 47\% speedup was entirely attributable to orchestration-layer overhead, not model behavior. This cautionary finding applies broadly to LLM benchmarking.
+    \item \textbf{Practical guidance}: For current frontier models on well-represented task domains, practitioners should not invest in historical pattern augmentation systems. Resources are better spent on task-specific prompt engineering or domain expansion.
+\end{enumerate}
 
-The cross-model results reveal that TI is not a universal accelerator but rather a \emph{conditional} one: it bridges the gap between task difficulty and model capability. This finding has both theoretical significance---extending the complexity threshold from tasks to models---and practical implications for deployment.
+The experimental design (Figure~\ref{fig:design}) and all data are available at \url{https://github.com/engagedirect001/temporalintelligence}.
 
-We position TI as complementary to Recursive Language Models: RLM improves reasoning \emph{within} inferences, while TI improves reasoning \emph{across} inferences over time. The combination produces AI systems that both think well and learn to think better.
-
-The distinction between velocity and acceleration is not merely academic---it represents the difference between linear and exponential returns on AI investment. As models improve, the frontier where TI provides value shifts to harder problems, ensuring its relevance even as baseline capabilities grow.
-
-\section*{Acknowledgments}
-
-Experiments were conducted using OpenClaw (\url{https://github.com/openclaw/openclaw}) for AI agent orchestration and Anthropic's Claude API for language model inference. The author thanks the OpenClaw community for infrastructure support.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/fig6_experimental_design.pdf}
+\caption{Experimental design overview. 28 debugging tasks are presented in two conditions (STATELESS and TEMPORAL) to six foundation models, measuring pass/fail and response time.}
+\label{fig:design}
+\end{figure}
 
 \bibliographystyle{plainnat}
-\begin{thebibliography}{20}
 
-\bibitem[Cai et al., 2023]{cai2023large}
-Cai, T., et al. (2023).
-\newblock Large language models as tool makers.
-\newblock \emph{arXiv preprint arXiv:2305.17126}.
+\begin{thebibliography}{10}
 
-\bibitem[Cohen, 1988]{cohen1988statistical}
-Cohen, J. (1988).
-\newblock \emph{Statistical Power Analysis for the Behavioral Sciences} (2nd ed.).
-\newblock Lawrence Erlbaum Associates.
-
-\bibitem[Duan et al., 2016]{duan2016rl}
-Duan, Y., Schulman, J., Chen, X., Bartlett, P.~L., Sutskever, I., and Abbeel, P. (2016).
-\newblock RL$^2$: Fast reinforcement learning via slow reinforcement learning.
-\newblock \emph{arXiv preprint arXiv:1611.02779}.
-
-\bibitem[Finn et al., 2017]{finn2017model}
-Finn, C., Abbeel, P., and Levine, S. (2017).
-\newblock Model-agnostic meta-learning for fast adaptation of deep networks.
-\newblock In \emph{ICML}.
-
-\bibitem[Karasi, 2026]{karasi2026repo}
-Karasi, A. (2026).
-\newblock Temporal Intelligence: Experiment code, task definitions, and reproducible results.
-\newblock \url{https://github.com/engagedirect001/temporalintelligence}.
-
-\bibitem[Brown et al., 2020]{brown2020language}
-Brown, T.~B., et al. (2020).
+\bibitem[Brown et~al.(2020)]{brown2020language}
+T.~Brown, B.~Mann, N.~Ryder, et~al.
 \newblock Language models are few-shot learners.
-\newblock In \emph{NeurIPS}.
+\newblock In \emph{NeurIPS}, 2020.
 
-\bibitem[Lewis et al., 2020]{lewis2020retrieval}
-Lewis, P., et al. (2020).
-\newblock Retrieval-augmented generation for knowledge-intensive NLP tasks.
-\newblock In \emph{NeurIPS}.
+\bibitem[Finn et~al.(2017)]{finn2017model}
+C.~Finn, P.~Abbeel, and S.~Levine.
+\newblock Model-agnostic meta-learning for fast adaptation of deep networks.
+\newblock In \emph{ICML}, 2017.
 
-\bibitem[Lin, 1992]{lin1992self}
-Lin, L.-J. (1992).
-\newblock Self-improving reactive agents based on reinforcement learning, planning and teaching.
-\newblock \emph{Machine Learning}, 8(3):293--321.
+\bibitem[Lewis et~al.(2020)]{lewis2020retrieval}
+P.~Lewis, E.~Perez, A.~Piktus, et~al.
+\newblock Retrieval-augmented generation for knowledge-intensive {NLP} tasks.
+\newblock In \emph{NeurIPS}, 2020.
 
-\bibitem[Mnih et al., 2015]{mnih2015human}
-Mnih, V., et al. (2015).
-\newblock Human-level control through deep reinforcement learning.
-\newblock \emph{Nature}, 518(7540):529--533.
+\bibitem[Min et~al.(2022)]{min2022rethinking}
+S.~Min, X.~Lyu, A.~Holtzman, et~al.
+\newblock Rethinking the role of demonstrations: What makes in-context learning work?
+\newblock In \emph{EMNLP}, 2022.
 
-\bibitem[Qin et al., 2023]{qin2023tool}
-Qin, Y., et al. (2023).
-\newblock Tool learning with foundation models.
-\newblock \emph{arXiv preprint arXiv:2304.08354}.
+\bibitem[Packer et~al.(2023)]{packer2023memgpt}
+C.~Packer, S.~Wooders, K.~Lin, et~al.
+\newblock {MemGPT}: Towards {LLMs} as operating systems.
+\newblock \emph{arXiv preprint arXiv:2310.08560}, 2023.
 
-\bibitem[Schaul et al., 2015]{schaul2015prioritized}
-Schaul, T., Quan, J., Antonoglou, I., and Silver, D. (2015).
-\newblock Prioritized experience replay.
-\newblock \emph{arXiv preprint arXiv:1511.05952}.
+\bibitem[Rogers et~al.(2020)]{rogers2020primer}
+A.~Rogers, O.~Kovaleva, and A.~Rumshisky.
+\newblock A primer in {BERTology}: What we know about how {BERT} works.
+\newblock \emph{TACL}, 8:842--866, 2020.
 
-\bibitem[Schick et al., 2023]{schick2023toolformer}
-Schick, T., et al. (2023).
-\newblock Toolformer: Language models can teach themselves to use tools.
-\newblock \emph{arXiv preprint arXiv:2302.04761}.
+\bibitem[Shi et~al.(2023)]{shi2023large}
+F.~Shi, X.~Chen, K.~Misra, et~al.
+\newblock Large language models can be easily distracted by irrelevant context.
+\newblock In \emph{ICML}, 2023.
 
-\bibitem[Schmidhuber, 1987]{schmidhuber1987evolutionary}
-Schmidhuber, J. (1987).
-\newblock Evolutionary principles in self-referential learning.
-\newblock \emph{Diploma thesis, TU Munich}.
+\bibitem[Shinn et~al.(2023)]{shinn2023reflexion}
+N.~Shinn, F.~Cassano, E.~Berman, et~al.
+\newblock Reflexion: Language agents with verbal reinforcement learning.
+\newblock In \emph{NeurIPS}, 2023.
 
-\bibitem[Thrun and Pratt, 1998]{thrun1998learning}
-Thrun, S. and Pratt, L. (1998).
-\newblock \emph{Learning to Learn}.
-\newblock Springer.
+\bibitem[Wei et~al.(2022)]{wei2022chain}
+J.~Wei, X.~Wang, D.~Schuurmans, et~al.
+\newblock Chain-of-thought prompting elicits reasoning in large language models.
+\newblock In \emph{NeurIPS}, 2022.
 
 \end{thebibliography}
-
-\appendix
-
-\section{Experimental Protocol Details}
-
-Full experimental protocol, task specifications, and raw data are available in the supplementary materials and the public repository: \url{https://github.com/engagedirect001/temporalintelligence}.
-
-\section{Statistical Analysis Code}
-
-Python code for all statistical analyses is provided in \texttt{statistics.py}.
 
 \end{document}
