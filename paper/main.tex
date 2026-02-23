@@ -56,7 +56,9 @@ These findings have practical implications: practitioners should not assume that
 
 \paragraph{Chain-of-Thought Prompting.} \citet{wei2022chain} showed that eliciting step-by-step reasoning improves performance on complex tasks. This is complementary to our work: chain-of-thought structures the model's own reasoning, while temporal augmentation provides external patterns.
 
-\paragraph{Episodic Memory for LLMs.} Systems like MemGPT \citep{packer2023memgpt} and Reflexion \citep{shinn2023reflexion} give LLMs access to past interaction histories. Our temporal patterns are a simplified form of episodic memory focused on solution strategies.
+\paragraph{Memory-Augmented Reasoning.} Recent work has explored persisting reasoning insights across tasks. \emph{Buffer of Thoughts} \citep{yang2024buffer} stores high-level ``thought-templates'' distilled from problem-solving processes and retrieves them for new tasks, achieving 11--51\% improvements on reasoning benchmarks---notably finding that Llama3-8B with BoT can surpass Llama3-70B without it, suggesting memory augmentation is most valuable for less capable models. \emph{Dynamic Cheatsheet} \citep{suzgun2025dynamic} maintains an evolving memory buffer that is continuously rewritten after each problem, enabling test-time continual learning without weight updates. Most directly relevant to our work, \emph{ArcMemo} \citep{ho2025arcmemo} applies concept-level memory to ARC-AGI abstract reasoning tasks, finding a 7.5\% relative gain over a no-memory baseline, with abstract concepts outperforming instance-level memories at all inference scales. Critically, ArcMemo demonstrates that dynamically accumulating patterns during evaluation outperforms fixed settings on \emph{novel} reasoning tasks---the key contrast with our findings on \emph{familiar} tasks.
+
+\paragraph{Episodic Memory for LLMs.} Systems like MemGPT \citep{packer2023memgpt} and Reflexion \citep{shinn2023reflexion} give LLMs access to past interaction histories. \citet{hu2025memory} provide a comprehensive survey of memory architectures for AI agents, distinguishing working, episodic, and semantic memory. Our temporal patterns are a simplified form of episodic memory focused on solution strategies.
 
 \paragraph{Meta-Learning and Transfer.} Meta-learning approaches aim to improve learning efficiency through exposure to related tasks \citep{finn2017model}. Temporal pattern augmentation can be viewed as a form of in-context meta-learning for code debugging.
 
@@ -222,6 +224,8 @@ Our results suggest a \emph{capability threshold} for pattern augmentation: mode
 
 \paragraph{Why Stronger Models Degrade.} For Opus 4.5/4.6, GPT-5.2/5.2 Pro, and Gemini 3.0 Pro, the temporal context likely introduces \emph{processing overhead} without corresponding benefit. The model must parse and integrate 800--1200 additional tokens that largely duplicate its existing knowledge. This is consistent with findings in the RAG literature that irrelevant or redundant retrieval can hurt performance \citep{shi2023large}.
 
+\paragraph{Converging Evidence.} Our capability threshold hypothesis is supported by findings in the memory-augmented reasoning literature. \citet{yang2024buffer} found that Buffer of Thoughts enables Llama3-8B to surpass Llama3-70B on reasoning tasks---the weaker model benefits dramatically from external thought-templates while the stronger model already possesses equivalent reasoning strategies. Similarly, \citet{ho2025arcmemo} found that concept memory yields a 7.5\% gain on ARC-AGI, a benchmark of \emph{novel} abstract reasoning tasks where models operate near their capability floor. In contrast, our code debugging tasks fall within the competence zone of frontier models, explaining the null effect. Taken together, these results suggest the critical variable is not whether memory augmentation ``works'' in general, but whether the tasks \emph{exceed the model's internalized capability}: memory helps on novel reasoning (ARC-AGI) and for weaker models (Llama3-8B, Gemini 2.5 Flash) but becomes redundant for frontier models on familiar tasks.
+
 \paragraph{Implications.} The capability threshold is not fixed---it depends on the domain and the quality of the augmentation patterns. For highly specialized domains where training data is sparse, augmentation may help even strong models. For well-represented domains like code debugging, the threshold is already below current frontier models.
 
 %% ═══════════════════════════════════════════════════════════════
@@ -252,9 +256,11 @@ Our earlier experiments, conducted through an orchestration layer (OpenClaw agen
 
 \paragraph{When Does Augmentation Help?} Our results suggest that pattern augmentation helps when there is a genuine capability gap---when the model lacks knowledge that the patterns provide. For Gemini 2.5 Flash, the debugging heuristics in our temporal patterns appear to partially fill such a gap. For stronger models, no gap exists for this task domain.
 
+\paragraph{Task Novelty as the Key Variable.} Synthesizing our results with ArcMemo \citep{ho2025arcmemo}, we propose that the critical variable determining augmentation benefit is \emph{task novelty relative to model capability}. ARC-AGI tasks are designed to be genuinely novel---each puzzle requires discovering a unique transformation rule unseen during training. Memory augmentation yields a 7.5\% gain on such tasks. Our code debugging tasks, by contrast, are well-represented in training data. Memory augmentation yields $-1\%$ to $-5\%$ on such tasks. This distinction---fluid intelligence tasks (where novelty demands external support) vs.\ crystallized intelligence tasks (where training knowledge suffices)---may be a general principle for predicting when augmentation strategies will succeed.
+
 \paragraph{Cost Implications.} Temporal augmentation adds 800--1200 tokens per request. At current API pricing, this represents a non-trivial cost increase (5--15\% depending on model and task length) for zero or negative benefit on capable models. Practitioners should evaluate augmentation strategies against their specific model and domain rather than assuming universal benefit.
 
-\paragraph{The ``More Context'' Assumption.} Our findings challenge the implicit assumption that more context is always better. While this assumption holds for knowledge the model lacks, it fails for knowledge the model already possesses. As models improve, the set of ``knowledge the model lacks'' shrinks, reducing the marginal value of augmentation.
+\paragraph{The ``More Context'' Assumption.} Our findings challenge the implicit assumption that more context is always better. While this assumption holds for knowledge the model lacks, it fails for knowledge the model already possesses. As models improve, the set of ``knowledge the model lacks'' shrinks, reducing the marginal value of augmentation. This is consistent with \citet{suzgun2025dynamic}, whose Dynamic Cheatsheet framework shows clear benefits on reasoning tasks at the frontier of model capability but implicitly relies on the assumption that the memory contains genuinely novel insights.
 
 \paragraph{Comparison to RAG.} Our findings parallel observations in the RAG literature: retrieval helps when it provides genuinely new information but can hurt when retrieved content is redundant or distracting \citep{shi2023large}. Temporal pattern augmentation, by providing patterns the model already knows, falls into the ``redundant'' category for strong models.
 
@@ -278,11 +284,12 @@ Our earlier experiments, conducted through an orchestration layer (OpenClaw agen
 
 We evaluated temporal pattern augmentation---injecting historical problem-solving patterns into LLM prompts---across six foundation models on 28 code debugging tasks. Our central finding is negative: \textbf{temporal augmentation does not improve performance for five of six models tested}, with only the least capable model (Gemini 2.5 Flash) showing a modest, non-significant speedup of +10.8\%.
 
-This negative result carries three positive contributions:
+This negative result carries four positive contributions:
 \begin{enumerate}[nosep]
-    \item \textbf{A capability threshold for augmentation}: As models improve, the marginal value of pattern injection decreases, eventually becoming counterproductive.
+    \item \textbf{A capability threshold for augmentation}: As models improve, the marginal value of pattern injection decreases, eventually becoming counterproductive. This complements findings from \citet{yang2024buffer} and \citet{ho2025arcmemo} showing augmentation benefits for less capable models and novel tasks.
+    \item \textbf{Task novelty as the key variable}: Combined with ArcMemo's positive results on ARC-AGI \citep{ho2025arcmemo}, our negative results on code debugging suggest that the critical factor is whether tasks exceed the model's internalized capability---not whether memory augmentation ``works'' in the abstract.
     \item \textbf{A measurement artifact warning}: A previously reported 47\% speedup was entirely attributable to orchestration-layer overhead, not model behavior. This cautionary finding applies broadly to LLM benchmarking.
-    \item \textbf{Practical guidance}: For current frontier models on well-represented task domains, practitioners should not invest in historical pattern augmentation systems. Resources are better spent on task-specific prompt engineering or domain expansion.
+    \item \textbf{Practical guidance}: For current frontier models on well-represented task domains, practitioners should not invest in historical pattern augmentation systems. For novel reasoning tasks or less capable models, memory augmentation remains a promising strategy.
 \end{enumerate}
 
 The experimental design (Figure~\ref{fig:design}) and all data are available at \url{https://github.com/engagedirect001/temporalintelligence}.
@@ -342,6 +349,26 @@ N.~Shinn, F.~Cassano, E.~Berman, et~al.
 J.~Wei, X.~Wang, D.~Schuurmans, et~al.
 \newblock Chain-of-thought prompting elicits reasoning in large language models.
 \newblock In \emph{NeurIPS}, 2022.
+
+\bibitem[Ho et~al.(2025)]{ho2025arcmemo}
+M.~Ho, C.~Si, Z.~Feng, F.~Yu, Y.~Yang, Z.~Liu, Z.~Hu, and L.~Qin.
+\newblock {ArcMemo}: Abstract reasoning composition with lifelong {LLM} memory.
+\newblock \emph{arXiv preprint arXiv:2509.04439}, 2025.
+
+\bibitem[Yang et~al.(2024)]{yang2024buffer}
+L.~Yang, Z.~Yu, T.~Zhang, et~al.
+\newblock Buffer of thoughts: Thought-augmented reasoning with large language models.
+\newblock In \emph{NeurIPS}, 2024. Spotlight.
+
+\bibitem[Suzgun et~al.(2025)]{suzgun2025dynamic}
+M.~Suzgun, M.~Yuksekgonul, F.~Bianchi, et~al.
+\newblock Dynamic cheatsheet: Test-time learning with adaptive memory.
+\newblock \emph{arXiv preprint arXiv:2504.07952}, 2025.
+
+\bibitem[Hu et~al.(2025)]{hu2025memory}
+Y.~Hu, S.~Liu, Y.~Yue, G.~Zhang, B.~Liu, F.~Zhu, J.~Lin, et~al.
+\newblock Memory in the age of {AI} agents.
+\newblock \emph{arXiv preprint arXiv:2512.13564}, 2025.
 
 \end{thebibliography}
 
