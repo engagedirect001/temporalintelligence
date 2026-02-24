@@ -264,6 +264,8 @@ Our earlier experiments, conducted through an orchestration layer (OpenClaw agen
 
 \paragraph{Comparison to RAG.} Our findings parallel observations in the RAG literature: retrieval helps when it provides genuinely new information but can hurt when retrieved content is redundant or distracting \citep{shi2023large}. Temporal pattern augmentation, by providing patterns the model already knows, falls into the ``redundant'' category for strong models.
 
+\paragraph{Application: IP-Safe Enterprise LLM Deployment.} Our capability threshold finding has a direct practical application for enterprises concerned with intellectual property protection. If a small model (8B--70B parameters), fine-tuned on proprietary data and augmented with domain-specific patterns, can approach frontier-level performance on domain tasks---as suggested by Buffer of Thoughts \citep{yang2024buffer} showing 8B models surpassing 70B models, and by our own finding that augmentation fills the capability gap for weaker models---then enterprises need not send proprietary data to frontier APIs for the majority of their queries. We propose a \emph{Sovereign AI} architecture consisting of three layers: (1)~a domain-trained local model handling ${\sim}85\%$ of queries on-premises with full IP protection, (2)~an IP masking middleware that sanitizes, abstracts, and generalizes the remaining queries by replacing proprietary entities with generic equivalents, and (3)~frontier model consultation on the sanitized queries for edge cases only. This architecture resolves the enterprise AI trilemma of capability versus privacy versus cost: preliminary cost analysis suggests ${\sim}90\%$ savings compared to full frontier API usage, while guaranteeing zero intellectual property leakage. A detailed framework specification is available in the companion paper \citep{karasi2026ipsafe}.
+
 %% ═══════════════════════════════════════════════════════════════
 \section{Limitations}
 \label{sec:limitations}
@@ -369,6 +371,11 @@ M.~Suzgun, M.~Yuksekgonul, F.~Bianchi, et~al.
 Y.~Hu, S.~Liu, Y.~Yue, G.~Zhang, B.~Liu, F.~Zhu, J.~Lin, et~al.
 \newblock Memory in the age of {AI} agents.
 \newblock \emph{arXiv preprint arXiv:2512.13564}, 2025.
+
+\bibitem[Karasi(2026b)]{karasi2026ipsafe}
+A.~Karasi.
+\newblock {IP}-Safe {LLM} deployment: Bridging the capability gap with domain-trained local models and sanitized frontier consultation.
+\newblock \emph{arXiv preprint}, 2026.
 
 \end{thebibliography}
 
