@@ -4,7 +4,7 @@
 
 *Anand Karasi (karasi@alum.mit.edu)*
 
-📄 **[Read the Paper (PDF)](paper/main.pdf)**
+📄 **[Read the Paper (PDF)](paper/main.pdf)** | 🔗 **[Zenodo (DOI: 10.5281/zenodo.19046131)](https://doi.org/10.5281/zenodo.19046131)**
 
 ## Key Finding
 
@@ -82,7 +82,8 @@ pdflatex main.tex && pdflatex main.tex
 @article{karasi2026experience,
   title={Does Experience Make LLMs Faster? Temporal Pattern Augmentation Across Six Foundation Models},
   author={Karasi, Anand},
-  journal={arXiv preprint},
+  doi={10.5281/zenodo.19046131},
+  url={https://doi.org/10.5281/zenodo.19046131},
   year={2026}
 }
 ```

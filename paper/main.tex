@@ -12,6 +12,7 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{enumitem}
+\usepackage{float}
 
 \title{Does Experience Make LLMs Faster? Temporal Pattern Augmentation Across Six Foundation Models}
 \author{Anand Karasi\\Independent Researcher\\\texttt{karasi@alum.mit.edu}}
@@ -21,13 +22,13 @@
 \maketitle
 
 \begin{abstract}
-We investigate whether augmenting large language model (LLM) prompts with historical problem-solving patterns---temporal pattern augmentation---improves performance on code debugging tasks. Testing six foundation models from three providers (Claude Opus 4.5/4.6, GPT-5.2/5.2 Pro, Gemini 2.5 Flash/3.0 Pro) on 28 debugging tasks via direct API calls, we find that temporal augmentation provides \textbf{no benefit for five of six models} and produces a modest speedup (\textbf{+10.8\%}) only for Gemini 2.5 Flash, the least capable model tested. Stronger models show slight degradation ($-1.2\%$ to $-5.1\%$). These results contradict an earlier finding of 47\% speedup, which we trace to a measurement artifact in orchestration-layer benchmarking. Our findings suggest that state-of-the-art LLMs already internalize the patterns that temporal augmentation provides, and that additional context may introduce processing overhead without corresponding benefit. We discuss implications for the ``more context is better'' assumption prevalent in LLM augmentation research and provide practical guidelines for when pattern augmentation may or may not help.
+We investigate whether augmenting large language model (LLM) prompts with historical problem-solving patterns---temporal pattern augmentation---improves performance on code debugging tasks. Testing six foundation models from three providers (Claude Opus 4.5/4.6, GPT-5.2/5.2 Pro, Gemini 2.5 Flash/3.0 Pro) on 28 debugging tasks via direct API calls, we find that temporal augmentation provides \textbf{no benefit for five of six models} and produces a modest speedup (\textbf{+10.8\%}) only for Gemini 2.5 Flash, the least capable model tested. Stronger models show slight degradation ($-1.2\%$ to $-5.1\%$). We observe a suggestive negative correlation between model capability and augmentation benefit, consistent with several possible explanations: a \emph{capability threshold} where stronger models have internalized the provided patterns, simple token-overhead and ceiling effects, or measurement artifacts from single-trial block-ordered experiments. We discuss implications for enterprise AI deployment, the assumption that more context always improves LLM performance, and future directions for memory-augmented systems focused on novel cross-domain reasoning rather than familiar-pattern accumulation.
 
 \medskip
 \noindent\textbf{Code and data:} \url{https://github.com/engagedirect001/temporalintelligence}
 \end{abstract}
 
-%% ═══════════════════════════════════════════════════════════════
+%% ===============================================================
 \section{Introduction}
 \label{sec:intro}
 
@@ -40,13 +41,13 @@ We test this hypothesis through \emph{temporal pattern augmentation}: injecting 
 Our results are a negative finding that we believe is important:
 \begin{itemize}[nosep]
     \item Five of six models show no benefit or slight degradation from temporal augmentation.
-    \item Only Gemini 2.5 Flash, the least capable model tested, shows improvement (+10.8\%).
-    \item An earlier reported 47\% speedup was an artifact of orchestration-layer measurement, not genuine model acceleration.
+    \item Only Gemini 2.5 Flash, the least capable model tested, shows improvement (+10.8\%, $p = 0.144$).
+    \item A suggestive negative correlation between model capability and augmentation benefit emerges, though our experimental design cannot fully distinguish between competing explanations (capability threshold, token overhead, ceiling effects).
 \end{itemize}
 
-These findings have practical implications: practitioners should not assume that injecting historical patterns into prompts will improve performance for capable models, and the benchmarking community should be vigilant about measurement artifacts when evaluating LLM augmentation strategies.
+We situate these findings within the memory-augmented reasoning literature, showing that our negative results on \emph{familiar} tasks complement positive results from ArcMemo \citep{ho2025arcmemo} on \emph{novel} reasoning tasks. Together, these results suggest that task novelty relative to model capability---not memory augmentation per se---is the critical variable determining whether augmentation helps.
 
-%% ═══════════════════════════════════════════════════════════════
+%% ===============================================================
 \section{Related Work}
 \label{sec:related}
 
@@ -64,7 +65,7 @@ These findings have practical implications: practitioners should not assume that
 
 \paragraph{Negative Results in NLP.} We follow the tradition of valuable negative results \citep{rogers2020primer}, demonstrating that a plausible augmentation strategy does not generalize across models.
 
-%% ═══════════════════════════════════════════════════════════════
+%% ===============================================================
 \section{Temporal Pattern Augmentation}
 \label{sec:method}
 
@@ -87,7 +88,7 @@ The temporal context adds approximately 800--1200 tokens to each prompt.
 
 Temporal patterns were manually curated from a development set of 50 debugging tasks (disjoint from the 28 evaluation tasks). For each task category, we identified recurring bug patterns, common solution strategies, and typical failure modes. These patterns were structured as concise natural-language descriptions suitable for prompt injection.
 
-%% ═══════════════════════════════════════════════════════════════
+%% ===============================================================
 \section{Experimental Setup}
 \label{sec:setup}
 
@@ -128,9 +129,7 @@ Opus 4.5 & Anthropic & Flagship & 9.9 \\
 
 \subsection{Methodology}
 
-All experiments use \textbf{direct API calls} to each provider's REST endpoint. This is a critical methodological choice: our earlier experiments used an orchestration layer (OpenClaw agent sessions) that introduced confounding variables (Section~\ref{sec:artifact}).
-
-For each model, we run all 28 tasks in the \textsc{Stateless} condition, then all 28 in the \textsc{Temporal} condition. We measure:
+All experiments use \textbf{direct API calls} to each provider's REST endpoint, isolating model behavior from any infrastructure overhead. For each model, we run all 28 tasks in the \textsc{Stateless} condition, then all 28 in the \textsc{Temporal} condition. We measure:
 \begin{itemize}[nosep]
     \item \textbf{Pass/fail}: Whether all tests pass for the model's generated fix.
     \item \textbf{Response time}: Wall-clock time from API request to complete response (elapsed milliseconds).
@@ -138,7 +137,7 @@ For each model, we run all 28 tasks in the \textsc{Stateless} condition, then al
 
 All experiments were conducted on February 21--22, 2026. Temperature was set to 0 for all models. Each task was run once per condition per model (single-trial design; see Section~\ref{sec:limitations}).
 
-%% ═══════════════════════════════════════════════════════════════
+%% ===============================================================
 \section{Results}
 \label{sec:results}
 
@@ -214,43 +213,25 @@ Figure~\ref{fig:heatmap} shows Cohen's $d$ for each model--difficulty combinatio
 \label{fig:heatmap}
 \end{figure}
 
-%% ═══════════════════════════════════════════════════════════════
-\section{The Capability Threshold Hypothesis}
+%% ===============================================================
+\section{Analysis}
 \label{sec:threshold}
 
-Our results suggest a \emph{capability threshold} for pattern augmentation: models below a certain capability level may benefit from external patterns, while models above it have already internalized those patterns.
+Our results are consistent with a \emph{capability threshold} for pattern augmentation: models below a certain capability level may benefit from external patterns, while models above it have already internalized those patterns. However, we acknowledge that several competing explanations could produce the same observed pattern, and our experimental design does not definitively distinguish among them.
 
-\paragraph{Why Flash Benefits.} Gemini 2.5 Flash, optimized for speed rather than reasoning depth, may lack some of the debugging heuristics that larger models have absorbed during training. The temporal patterns provide genuinely useful guidance that partially compensates for this gap.
+\paragraph{Explanation 1: Internalization / Capability Threshold.} Gemini 2.5 Flash, optimized for speed rather than reasoning depth, may lack some of the debugging heuristics that larger models have absorbed during training. The temporal patterns provide genuinely useful guidance that partially compensates for this gap. Under this interpretation, stronger models already possess equivalent knowledge and gain nothing.
 
-\paragraph{Why Stronger Models Degrade.} For Opus 4.5/4.6, GPT-5.2/5.2 Pro, and Gemini 3.0 Pro, the temporal context likely introduces \emph{processing overhead} without corresponding benefit. The model must parse and integrate 800--1200 additional tokens that largely duplicate its existing knowledge. This is consistent with findings in the RAG literature that irrelevant or redundant retrieval can hurt performance \citep{shi2023large}.
+\paragraph{Explanation 2: Token Overhead and Ceiling Effects.} The temporal context adds 800--1200 tokens to each prompt. This additional prefill cost mechanically increases response time regardless of any cognitive benefit. For models already near-ceiling on pass rates (24--27 out of 28), there is little room for correctness improvement, and the added tokens manifest only as overhead. This is consistent with findings in the RAG literature that irrelevant or redundant retrieval can hurt performance \citep{shi2023large}.
 
-\paragraph{Converging Evidence.} Our capability threshold hypothesis is supported by findings in the memory-augmented reasoning literature. \citet{yang2024buffer} found that Buffer of Thoughts enables Llama3-8B to surpass Llama3-70B on reasoning tasks---the weaker model benefits dramatically from external thought-templates while the stronger model already possesses equivalent reasoning strategies. Similarly, \citet{ho2025arcmemo} found that concept memory yields a 7.5\% gain on ARC-AGI, a benchmark of \emph{novel} abstract reasoning tasks where models operate near their capability floor. In contrast, our code debugging tasks fall within the competence zone of frontier models, explaining the null effect. Taken together, these results suggest the critical variable is not whether memory augmentation ``works'' in general, but whether the tasks \emph{exceed the model's internalized capability}: memory helps on novel reasoning (ARC-AGI) and for weaker models (Llama3-8B, Gemini 2.5 Flash) but becomes redundant for frontier models on familiar tasks.
+\paragraph{Explanation 3: Experimental Artifacts.} Our block-ordered design (all \textsc{Stateless} runs then all \textsc{Temporal} runs per model) means that time-of-day effects, API load variation, and rate-limiting dynamics could systematically differ between conditions. Single-trial measurements further limit our ability to separate signal from noise. The one model showing improvement (Gemini 2.5 Flash at $p = 0.144$) does not reach significance.
 
-\paragraph{Implications.} The capability threshold is not fixed---it depends on the domain and the quality of the augmentation patterns. For highly specialized domains where training data is sparse, augmentation may help even strong models. For well-represented domains like code debugging, the threshold is already below current frontier models.
+\paragraph{Disentangling These Explanations.} Future work should include: (i)~\emph{token accounting} separating input/output token counts and time-to-first-token from generation speed, (ii)~\emph{randomized AB/BA ordering} to eliminate block-ordering confounds, (iii)~\emph{multiple repeats} (3--5 per condition) to estimate run-to-run variance, and (iv)~\emph{output-length constraints} to control for temporal prompts eliciting longer responses. We note that regardless of which explanation dominates, the practical conclusion is the same: temporal pattern augmentation does not help frontier models on familiar code debugging tasks.
 
-%% ═══════════════════════════════════════════════════════════════
-\section{Measurement Artifact Analysis}
-\label{sec:artifact}
+\paragraph{Converging Evidence from the Literature.} While our data alone cannot confirm the capability threshold interpretation, it is consistent with findings in the memory-augmented reasoning literature. \citet{yang2024buffer} found that Buffer of Thoughts enables Llama3-8B to surpass Llama3-70B on reasoning tasks---the weaker model benefits dramatically from external thought-templates while the stronger model already possesses equivalent reasoning strategies. Similarly, \citet{ho2025arcmemo} found that concept memory yields a 7.5\% gain on ARC-AGI, a benchmark of \emph{novel} abstract reasoning tasks where models operate near their capability floor. In contrast, our code debugging tasks fall within the competence zone of frontier models, explaining the null effect. Taken together, these results suggest the critical variable is not whether memory augmentation ``works'' in general, but whether the tasks \emph{exceed the model's internalized capability}: memory helps on novel reasoning (ARC-AGI) and for weaker models (Llama3-8B, Gemini 2.5 Flash) but becomes redundant for frontier models on familiar tasks.
 
-Our earlier experiments, conducted through an orchestration layer (OpenClaw agent sessions), measured a \textbf{47\% speedup} for Opus 4.5 with temporal augmentation. This dramatic result motivated the cross-model study reported here. When we switched to direct API measurement, the effect for Opus 4.5 dropped to \textbf{$-1.2\%$} (Figure~\ref{fig:artifact}).
+\paragraph{Domain Dependence.} The capability threshold is not fixed---it depends on the domain and the quality of the augmentation patterns. For highly specialized domains where training data is sparse, augmentation may help even strong models. For well-represented domains like code debugging, the threshold is already below current frontier models.
 
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.55\textwidth]{figures/fig4_measurement_artifact.pdf}
-\caption{The measurement artifact: identical model (Opus 4.5) and task suite measured through an orchestration layer (+47\%) vs.\ direct API ($-1.2\%$). The 48-point discrepancy is entirely attributable to the measurement environment.}
-\label{fig:artifact}
-\end{figure}
-
-\paragraph{Root Cause.} The orchestration layer introduces variable overhead including session initialization, context management, tool routing, and response parsing. In the \textsc{Stateless} condition, the orchestration layer performed additional setup work (environment initialization without cached context), inflating baseline times. The \textsc{Temporal} condition benefited from pre-populated session state, creating an apparent speedup that was actually faster \emph{orchestration}, not faster \emph{model inference}.
-
-\paragraph{Warning to the Community.} This artifact has broad implications for LLM benchmarking:
-\begin{enumerate}[nosep]
-    \item \textbf{Measure at the API level} whenever possible to isolate model behavior from infrastructure.
-    \item \textbf{Be skeptical of large effects} measured through orchestration layers, agent frameworks, or multi-step pipelines.
-    \item \textbf{Report measurement methodology} in detail, including whether timing includes infrastructure overhead.
-\end{enumerate}
-
-%% ═══════════════════════════════════════════════════════════════
+%% ===============================================================
 \section{Discussion}
 \label{sec:discussion}
 
@@ -264,9 +245,9 @@ Our earlier experiments, conducted through an orchestration layer (OpenClaw agen
 
 \paragraph{Comparison to RAG.} Our findings parallel observations in the RAG literature: retrieval helps when it provides genuinely new information but can hurt when retrieved content is redundant or distracting \citep{shi2023large}. Temporal pattern augmentation, by providing patterns the model already knows, falls into the ``redundant'' category for strong models.
 
-\paragraph{Application: IP-Safe Enterprise LLM Deployment.} Our capability threshold finding has a direct practical application for enterprises concerned with intellectual property protection. If a small model (8B--70B parameters), fine-tuned on proprietary data and augmented with domain-specific patterns, can approach frontier-level performance on domain tasks---as suggested by Buffer of Thoughts \citep{yang2024buffer} showing 8B models surpassing 70B models, and by our own finding that augmentation fills the capability gap for weaker models---then enterprises need not send proprietary data to frontier APIs for the majority of their queries. We propose a \emph{Sovereign AI} architecture consisting of three layers: (1)~a domain-trained local model handling ${\sim}85\%$ of queries on-premises with full IP protection, (2)~an IP masking middleware that sanitizes, abstracts, and generalizes the remaining queries by replacing proprietary entities with generic equivalents, and (3)~frontier model consultation on the sanitized queries for edge cases only. This architecture resolves the enterprise AI trilemma of capability versus privacy versus cost: preliminary cost analysis suggests ${\sim}90\%$ savings compared to full frontier API usage, while guaranteeing zero intellectual property leakage. A detailed framework specification is available in the companion paper \citep{karasi2026ipsafe}.
+\paragraph{Practical Implications for Enterprise Deployment.} Our capability threshold finding has practical implications for enterprises deploying LLM systems. If a smaller model augmented with domain-specific patterns can approach frontier-level performance on domain tasks---as suggested by Buffer of Thoughts \citep{yang2024buffer} showing 8B models surpassing 70B models, and by our own finding that augmentation fills the capability gap for weaker models---then organizations can potentially route routine queries to augmented smaller models while reserving frontier model access for tasks that genuinely exceed local model capability. This routing strategy aligns augmentation investment with where it demonstrably helps.
 
-%% ═══════════════════════════════════════════════════════════════
+%% ===============================================================
 \section{Limitations}
 \label{sec:limitations}
 
@@ -274,38 +255,54 @@ Our earlier experiments, conducted through an orchestration layer (OpenClaw agen
     \item \textbf{Single task domain.} All 28 tasks are code debugging. Results may not transfer to other domains (e.g., creative writing, mathematical reasoning, medical diagnosis).
     \item \textbf{Limited task count.} With 28 tasks, statistical power is limited. True small effects ($|d| < 0.2$) may not be detectable.
     \item \textbf{Human-curated patterns.} Our temporal patterns were manually created. Automatically extracted patterns might perform differently.
-    \item \textbf{Single run per condition.} Each task was run once per condition per model. Run-to-run variance (especially for stochastic models at temperature 0 with variable server load) is not captured.
+    \item \textbf{Single run per condition.} Each task was run once per condition per model. Run-to-run variance (especially with variable server load) is not captured; 3--5 repeats would be needed to estimate reliability.
+    \item \textbf{Block ordering.} All \textsc{Stateless} runs were completed before \textsc{Temporal} runs for each model, introducing potential time-of-day, rate-limiting, or API-warmup confounds. Randomized AB/BA interleaving would eliminate this.
+    \item \textbf{No token accounting.} We did not separately measure input tokens, output tokens, time-to-first-token (TTFT), or tokens-per-second. The 800--1200 extra prompt tokens in the \textsc{Temporal} condition mechanically increase prefill time, and any difference in output length is uncontrolled. Without this decomposition, we cannot distinguish cognitive effects from token-overhead effects.
     \item \textbf{Fixed pattern design.} We used the same temporal context structure for all models. Model-specific pattern formats might yield different results.
     \item \textbf{Snapshot in time.} These results reflect model capabilities as of February 2026. Future model versions may respond differently to augmentation.
-    \item \textbf{Response time as proxy.} We measure wall-clock API response time, which conflates thinking time with generation time and is subject to server-side variability.
+    \item \textbf{Response time as proxy.} We measure wall-clock API response time, which conflates prefill time, thinking time, and generation time, and is subject to server-side variability.
 \end{enumerate}
 
-%% ═══════════════════════════════════════════════════════════════
+%% ===============================================================
 \section{Conclusion}
 \label{sec:conclusion}
 
 We evaluated temporal pattern augmentation---injecting historical problem-solving patterns into LLM prompts---across six foundation models on 28 code debugging tasks. Our central finding is negative: \textbf{temporal augmentation does not improve performance for five of six models tested}, with only the least capable model (Gemini 2.5 Flash) showing a modest, non-significant speedup of +10.8\%.
 
-This negative result carries four positive contributions:
+This negative result carries three contributions:
 \begin{enumerate}[nosep]
-    \item \textbf{A capability threshold for augmentation}: As models improve, the marginal value of pattern injection decreases, eventually becoming counterproductive. This complements findings from \citet{yang2024buffer} and \citet{ho2025arcmemo} showing augmentation benefits for less capable models and novel tasks.
-    \item \textbf{Task novelty as the key variable}: Combined with ArcMemo's positive results on ARC-AGI \citep{ho2025arcmemo}, our negative results on code debugging suggest that the critical factor is whether tasks exceed the model's internalized capability---not whether memory augmentation ``works'' in the abstract.
-    \item \textbf{A measurement artifact warning}: A previously reported 47\% speedup was entirely attributable to orchestration-layer overhead, not model behavior. This cautionary finding applies broadly to LLM benchmarking.
-    \item \textbf{Practical guidance}: For current frontier models on well-represented task domains, practitioners should not invest in historical pattern augmentation systems. For novel reasoning tasks or less capable models, memory augmentation remains a promising strategy.
+    \item \textbf{A robust negative result}: Temporal pattern augmentation does not help frontier models on familiar code debugging tasks. This holds across six models from three providers, regardless of which underlying explanation (internalization, token overhead, ceiling effects) dominates.
+    \item \textbf{A suggestive capability--benefit relationship}: The negative correlation between model capability and augmentation benefit is consistent with a capability threshold, though our single-trial block-ordered design cannot definitively rule out simpler explanations. Disentangling these requires token accounting, randomized ordering, and multiple repeats (Section~\ref{sec:threshold}).
+    \item \textbf{Practical guidance}: For current frontier models on well-represented task domains, practitioners should not invest in historical pattern augmentation systems without first validating benefit for their specific model and domain. Resources may be better directed toward novel task domains where augmentation has demonstrated value \citep{ho2025arcmemo}.
 \end{enumerate}
 
+\subsection*{Future Directions}
+
+Our results, combined with ArcMemo's positive findings on novel reasoning tasks \citep{ho2025arcmemo}, point toward a clear research direction for memory-augmented LLM systems.
+
+Concretely, we propose three lines of future work:
+\begin{enumerate}[nosep]
+    \item \textbf{Cross-domain novelty injection}: Rather than providing within-domain patterns (e.g., past debugging solutions for debugging tasks), augment prompts with \emph{cross-domain} analogies and frameworks---insights from biology for software architecture, economic models for resource allocation, or artistic principles for interface design. The hypothesis is that augmentation adds value precisely when it provides knowledge the model \emph{cannot} derive from its training distribution on the target domain alone.
+    \item \textbf{Frontier-of-capability targeting}: Deploy memory augmentation selectively on tasks identified as near the model's capability frontier---novel reasoning, cross-domain transfer, or tasks with sparse training data---rather than blanket augmentation across all queries. This aligns augmentation investment with where it demonstrably helps.
+    \item \textbf{Rigorous methodology}: Future experiments should include token-level accounting (input/output counts, TTFT, tokens/sec), randomized condition ordering, multiple repeats per condition, and output-length controls. These improvements would allow definitive attribution of observed effects to cognitive benefit versus mechanical overhead.
+\end{enumerate}
+
+The shift from ``accumulate more of what models already know'' to ``curate what they cannot derive alone'' reframes memory augmentation from a retrieval problem to a \emph{novelty curation} problem---identifying and injecting knowledge that genuinely extends model capability rather than duplicating it.
+
+\medskip
 The experimental design (Figure~\ref{fig:design}) and all data are available at \url{https://github.com/engagedirect001/temporalintelligence}.
 
-\begin{figure}[ht]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.85\textwidth]{figures/fig6_experimental_design.pdf}
-\caption{Experimental design overview. 28 debugging tasks are presented in two conditions (STATELESS and TEMPORAL) to six foundation models, measuring pass/fail and response time.}
+\caption{Experimental design overview. 28 debugging tasks are presented in two conditions (STATELESS and TEMPORAL) to six foundation models via direct API calls, measuring pass/fail and response time.}
 \label{fig:design}
 \end{figure}
 
+\clearpage
 \bibliographystyle{plainnat}
 
-\begin{thebibliography}{10}
+\begin{thebibliography}{14}
 
 \bibitem[Brown et~al.(2020)]{brown2020language}
 T.~Brown, B.~Mann, N.~Ryder, et~al.
@@ -316,6 +313,16 @@ T.~Brown, B.~Mann, N.~Ryder, et~al.
 C.~Finn, P.~Abbeel, and S.~Levine.
 \newblock Model-agnostic meta-learning for fast adaptation of deep networks.
 \newblock In \emph{ICML}, 2017.
+
+\bibitem[Ho et~al.(2025)]{ho2025arcmemo}
+M.~Ho, C.~Si, Z.~Feng, F.~Yu, Y.~Yang, Z.~Liu, Z.~Hu, and L.~Qin.
+\newblock {ArcMemo}: Abstract reasoning composition with lifelong {LLM} memory.
+\newblock \emph{arXiv preprint arXiv:2509.04439}, 2025.
+
+\bibitem[Hu et~al.(2025)]{hu2025memory}
+Y.~Hu, S.~Liu, Y.~Yue, G.~Zhang, B.~Liu, F.~Zhu, J.~Lin, et~al.
+\newblock Memory in the age of {AI} agents.
+\newblock \emph{arXiv preprint arXiv:2512.13564}, 2025.
 
 \bibitem[Lewis et~al.(2020)]{lewis2020retrieval}
 P.~Lewis, E.~Perez, A.~Piktus, et~al.
@@ -347,35 +354,20 @@ N.~Shinn, F.~Cassano, E.~Berman, et~al.
 \newblock Reflexion: Language agents with verbal reinforcement learning.
 \newblock In \emph{NeurIPS}, 2023.
 
-\bibitem[Wei et~al.(2022)]{wei2022chain}
-J.~Wei, X.~Wang, D.~Schuurmans, et~al.
-\newblock Chain-of-thought prompting elicits reasoning in large language models.
-\newblock In \emph{NeurIPS}, 2022.
-
-\bibitem[Ho et~al.(2025)]{ho2025arcmemo}
-M.~Ho, C.~Si, Z.~Feng, F.~Yu, Y.~Yang, Z.~Liu, Z.~Hu, and L.~Qin.
-\newblock {ArcMemo}: Abstract reasoning composition with lifelong {LLM} memory.
-\newblock \emph{arXiv preprint arXiv:2509.04439}, 2025.
-
-\bibitem[Yang et~al.(2024)]{yang2024buffer}
-L.~Yang, Z.~Yu, T.~Zhang, et~al.
-\newblock Buffer of thoughts: Thought-augmented reasoning with large language models.
-\newblock In \emph{NeurIPS}, 2024. Spotlight.
-
 \bibitem[Suzgun et~al.(2025)]{suzgun2025dynamic}
 M.~Suzgun, M.~Yuksekgonul, F.~Bianchi, et~al.
 \newblock Dynamic cheatsheet: Test-time learning with adaptive memory.
 \newblock \emph{arXiv preprint arXiv:2504.07952}, 2025.
 
-\bibitem[Hu et~al.(2025)]{hu2025memory}
-Y.~Hu, S.~Liu, Y.~Yue, G.~Zhang, B.~Liu, F.~Zhu, J.~Lin, et~al.
-\newblock Memory in the age of {AI} agents.
-\newblock \emph{arXiv preprint arXiv:2512.13564}, 2025.
+\bibitem[Wei et~al.(2022)]{wei2022chain}
+J.~Wei, X.~Wang, D.~Schuurmans, et~al.
+\newblock Chain-of-thought prompting elicits reasoning in large language models.
+\newblock In \emph{NeurIPS}, 2022.
 
-\bibitem[Karasi(2026b)]{karasi2026ipsafe}
-A.~Karasi.
-\newblock {IP}-Safe {LLM} deployment: Bridging the capability gap with domain-trained local models and sanitized frontier consultation.
-\newblock \emph{arXiv preprint}, 2026.
+\bibitem[Yang et~al.(2024)]{yang2024buffer}
+L.~Yang, Z.~Yu, T.~Zhang, et~al.
+\newblock Buffer of thoughts: Thought-augmented reasoning with large language models.
+\newblock In \emph{NeurIPS}, 2024. Spotlight.
 
 \end{thebibliography}
 
