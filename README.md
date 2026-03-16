@@ -4,7 +4,7 @@
 
 *Anand Karasi (karasi@alum.mit.edu)*
 
-📄 **[Read the Paper (PDF)](paper/main.pdf)** | 🔗 **[Zenodo (DOI: 10.5281/zenodo.19046131)](https://doi.org/10.5281/zenodo.19046131)**
+📄 **[Read the Paper (PDF)](paper/main.pdf)** | 🔗 **[Zenodo (DOI: 10.5281/zenodo.19046131)](https://doi.org/10.5281/zenodo.19046131)** | 📑 **[SSRN](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6425740)**
 
 ## Key Finding
 
